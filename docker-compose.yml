@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_DB: videoflix_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  web:
+    build: .
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=True
+      - DATABASE_HOST=db
+      - REDIS_HOST=redis
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - .:/app
+      - media_data:/app/media
+    command: python manage.py runserver 0.0.0.0:8000
+
+  worker:
+    build: .
+    restart: always
+    environment:
+      - DEBUG=True
+      - DATABASE_HOST=db
+      - REDIS_HOST=redis
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - .:/app
+      - media_data:/app/media
+    command: python manage.py rqworker default
+
+volumes:
+  postgres_data:
+  redis_data:
+  media_data:
