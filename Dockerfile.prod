@@ -19,22 +19,30 @@ RUN apt-get update \
         netcat-traditional \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies first (for better caching)
+# Create app user
+RUN addgroup --system app && adduser --system --group app
+
+# Install Python dependencies
 COPY requirements.txt /app/
 RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt
+    && pip install --no-cache-dir -r requirements.txt \
+    && pip install --no-cache-dir gunicorn
 
 # Copy project files
 COPY . /app/
 
 # Create media directories with proper permissions
 RUN mkdir -p /app/media/thumbnails /app/media/videos /app/media/hls /app/staticfiles \
+    && chown -R app:app /app \
     && chmod -R 755 /app/media \
     && chmod -R 755 /app/staticfiles
 
-# Create entrypoint script
+# Copy entrypoint script
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Switch to app user
+USER app
 
 # Expose port
 EXPOSE 8000

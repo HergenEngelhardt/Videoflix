@@ -31,11 +31,8 @@ def register_view(request):
     serializer = UserRegistrationSerializer(data=request.data)
     if serializer.is_valid():
         user = serializer.save()
-        
-        # Send activation email
         send_activation_email(user)
         
-        # Create token for demonstration (not used in frontend)
         refresh = RefreshToken.for_user(user)
         
         return Response({
@@ -93,7 +90,6 @@ def login_view(request):
     if serializer.is_valid():
         user = serializer.validated_data['user']
         
-        # Create tokens
         refresh = RefreshToken.for_user(user)
         access_token = refresh.access_token
         
@@ -105,7 +101,6 @@ def login_view(request):
             }
         }, status=status.HTTP_200_OK)
         
-        # Set HTTP-only cookies
         response.set_cookie(
             'access_token',
             str(access_token),
