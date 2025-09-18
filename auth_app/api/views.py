@@ -44,7 +44,7 @@ def register_view(request):
         }, status=status.HTTP_201_CREATED)
     
     return Response(
-        {'detail': 'Bitte überprüfe deine Eingaben und versuche es erneut.'}, 
+        {'detail': 'Please check your input and try again.'}, 
         status=status.HTTP_400_BAD_REQUEST
     )
 
@@ -61,7 +61,7 @@ def activate_view(request, uidb64, token):
         user = get_object_or_404(CustomUser, pk=uid)
     except (TypeError, ValueError, OverflowError):
         return Response(
-            {'message': 'Aktivierung fehlgeschlagen.'}, 
+            {'message': 'Activation failed.'}, 
             status=status.HTTP_400_BAD_REQUEST
         )
     
@@ -74,7 +74,7 @@ def activate_view(request, uidb64, token):
         )
     else:
         return Response(
-            {'message': 'Aktivierung fehlgeschlagen.'}, 
+            {'message': 'Activation failed.'}, 
             status=status.HTTP_400_BAD_REQUEST
         )
 
@@ -122,7 +122,7 @@ def login_view(request):
         return response
     
     return Response(
-        {'detail': 'Bitte überprüfe deine Eingaben und versuche es erneut.'}, 
+        {'detail': 'Please check your input and try again.'}, 
         status=status.HTTP_400_BAD_REQUEST
     )
 
@@ -137,7 +137,7 @@ def logout_view(request):
     
     if not refresh_token:
         return Response(
-            {'detail': 'Refresh-Token fehlt.'}, 
+            {'detail': 'Refresh token missing.'}, 
             status=status.HTTP_400_BAD_REQUEST
         )
     
@@ -168,7 +168,7 @@ def token_refresh_view(request):
     
     if not refresh_token:
         return Response(
-            {'detail': 'Refresh-Token fehlt.'}, 
+            {'detail': 'Refresh token missing.'}, 
             status=status.HTTP_400_BAD_REQUEST
         )
     
@@ -195,7 +195,7 @@ def token_refresh_view(request):
         
     except TokenError:
         return Response(
-            {'detail': 'Ungültiger Refresh-Token.'}, 
+            {'detail': 'Invalid refresh token.'}, 
             status=status.HTTP_401_UNAUTHORIZED
         )
 
@@ -222,7 +222,7 @@ def password_reset_view(request):
         }, status=status.HTTP_200_OK)
     
     return Response(
-        {'detail': 'Bitte überprüfe deine Eingaben und versuche es erneut.'}, 
+        {'detail': 'Please check your input and try again.'}, 
         status=status.HTTP_400_BAD_REQUEST
     )
 
@@ -239,13 +239,13 @@ def password_confirm_view(request, uidb64, token):
         user = get_object_or_404(CustomUser, pk=uid)
     except (TypeError, ValueError, OverflowError):
         return Response(
-            {'detail': 'Ungültiger Reset-Link.'}, 
+            {'detail': 'Invalid reset link.'}, 
             status=status.HTTP_400_BAD_REQUEST
         )
     
     if not default_token_generator.check_token(user, token):
         return Response(
-            {'detail': 'Ungültiger oder abgelaufener Token.'}, 
+            {'detail': 'Invalid or expired token.'}, 
             status=status.HTTP_400_BAD_REQUEST
         )
     
@@ -259,6 +259,6 @@ def password_confirm_view(request, uidb64, token):
         }, status=status.HTTP_200_OK)
     
     return Response(
-        {'detail': 'Bitte überprüfe deine Eingaben und versuche es erneut.'}, 
+        {'detail': 'Please check your input and try again.'}, 
         status=status.HTTP_400_BAD_REQUEST
     )
