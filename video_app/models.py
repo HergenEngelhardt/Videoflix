@@ -6,11 +6,11 @@ import os
 class Category(models.Model):
     """Model for video categories."""
     name = models.CharField(max_length=100, unique=True, verbose_name="Name")
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Erstellt am")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Created at")
     
     class Meta:
-        verbose_name = "Kategorie"
-        verbose_name_plural = "Kategorien"
+        verbose_name = "Category"
+        verbose_name_plural = "Categories"
         ordering = ['name']
     
     def __str__(self):
@@ -19,13 +19,13 @@ class Category(models.Model):
 
 class Video(models.Model):
     """Model for videos with HLS streaming support."""
-    title = models.CharField(max_length=200, verbose_name="Titel")
-    description = models.TextField(verbose_name="Beschreibung")
+    title = models.CharField(max_length=200, verbose_name="Title")
+    description = models.TextField(verbose_name="Description")
     category = models.ForeignKey(
         Category, 
         on_delete=models.CASCADE, 
         related_name="videos",
-        verbose_name="Kategorie"
+        verbose_name="Category"
     )
     thumbnail = models.ImageField(
         upload_to='thumbnails/', 
@@ -37,17 +37,17 @@ class Video(models.Model):
         upload_to='videos/', 
         blank=True, 
         null=True,
-        verbose_name="Video Datei"
+        verbose_name="Video File"
     )
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Erstellt am")
-    updated_at = models.DateTimeField(auto_now=True, verbose_name="Aktualisiert am")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Created at")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Updated at")
     
-    hls_processed = models.BooleanField(default=False, verbose_name="HLS verarbeitet")
+    hls_processed = models.BooleanField(default=False, verbose_name="HLS Processed")
     hls_path = models.CharField(
         max_length=500, 
         blank=True, 
         null=True,
-        verbose_name="HLS Pfad"
+        verbose_name="HLS Path"
     )
     
     class Meta:

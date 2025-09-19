@@ -102,7 +102,7 @@ DATABASES = {
     }
 }
 
-# Füge die Konfiguration für Redis und RQ hinzu
+# Add Redis and RQ configuration
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",

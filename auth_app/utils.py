@@ -19,17 +19,17 @@ def send_activation_email(user):
     
     activation_link = f"{settings.FRONTEND_URL}/activate/{uid}/{token}/"
     
-    subject = 'Aktiviere dein Videoflix Konto'
+    subject = 'Activate your Videoflix Account'
     message = f"""
-    Hallo,
+    Hello,
     
-    bitte klicke auf den folgenden Link, um dein Konto zu aktivieren:
+    please click on the following link to activate your account:
     {activation_link}
     
-    Falls du dich nicht bei Videoflix registriert hast, ignoriere diese E-Mail.
+    If you did not register at Videoflix, please ignore this email.
     
-    Viele Grüße
-    Das Videoflix Team
+    Best regards
+    The Videoflix Team
     """
     
     queue = django_rq.get_queue('default')
@@ -52,19 +52,19 @@ def send_password_reset_email(user):
     
     reset_link = f"{settings.FRONTEND_URL}/password-reset/{uid}/{token}/"
     
-    subject = 'Passwort zurücksetzen - Videoflix'
+    subject = 'Password Reset - Videoflix'
     message = f"""
-    Hallo,
+    Hello,
     
-    du hast eine Passwort-Zurücksetzung für dein Videoflix Konto angefordert.
+    you have requested a password reset for your Videoflix account.
     
-    Klicke auf den folgenden Link, um ein neues Passwort zu setzen:
+    Click on the following link to set a new password:
     {reset_link}
     
-    Falls du diese Anfrage nicht gestellt hast, ignoriere diese E-Mail.
+    If you did not make this request, please ignore this email.
     
-    Viele Grüße
-    Das Videoflix Team
+    Best regards
+    The Videoflix Team
     """
     
     queue = django_rq.get_queue('default')
