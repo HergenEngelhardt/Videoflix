@@ -104,7 +104,7 @@ def login_view(request):
         response.set_cookie(
             'access_token',
             str(access_token),
-            max_age=3600,  # 1 hour
+            max_age=3600,  
             httponly=True,
             secure=not request.META.get('HTTP_HOST', '').startswith('localhost'),
             samesite='Lax'
@@ -113,7 +113,7 @@ def login_view(request):
         response.set_cookie(
             'refresh_token',
             str(refresh),
-            max_age=604800,  # 7 days
+            max_age=604800, 
             httponly=True,
             secure=not request.META.get('HTTP_HOST', '').startswith('localhost'),
             samesite='Lax'
@@ -145,13 +145,12 @@ def logout_view(request):
         token = RefreshToken(refresh_token)
         token.blacklist()
     except TokenError:
-        pass  # Token already invalid
+        pass 
     
     response = Response({
         'detail': 'Logout successful! All tokens will be deleted. Refresh token is now invalid.'
     }, status=status.HTTP_200_OK)
     
-    # Delete cookies
     response.delete_cookie('access_token')
     response.delete_cookie('refresh_token')
     
@@ -181,11 +180,10 @@ def token_refresh_view(request):
             'access': str(access_token)
         }, status=status.HTTP_200_OK)
         
-        # Set new access token cookie
         response.set_cookie(
             'access_token',
             str(access_token),
-            max_age=3600,  # 1 hour
+            max_age=3600, 
             httponly=True,
             secure=not request.META.get('HTTP_HOST', '').startswith('localhost'),
             samesite='Lax'
@@ -215,7 +213,7 @@ def password_reset_view(request):
             user = CustomUser.objects.get(email=email)
             send_password_reset_email(user)
         except CustomUser.DoesNotExist:
-            pass  # Don't reveal if email exists
+            pass  
         
         return Response({
             'detail': 'An email has been sent to reset your password.'

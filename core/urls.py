@@ -23,10 +23,9 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('auth_app.api.urls')),
     path('api/video/', include('video_app.api.urls')),
-    path('django-rq/', include('django_rq.urls')),  # RQ Dashboard
+    path('django-rq/', include('django_rq.urls')),  
 ]
 
-# Serve media files in development
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

@@ -34,7 +34,6 @@ def hls_manifest_view(request, movie_id, resolution):
     """
     video = get_object_or_404(Video, id=movie_id, hls_processed=True)
     
-    # Construct path to manifest file
     manifest_path = os.path.join(
         settings.MEDIA_ROOT, 
         'hls', 
@@ -68,7 +67,6 @@ def hls_segment_view(request, movie_id, resolution, segment):
     """
     video = get_object_or_404(Video, id=movie_id, hls_processed=True)
     
-    # Construct path to segment file
     segment_path = os.path.join(
         settings.MEDIA_ROOT, 
         'hls', 

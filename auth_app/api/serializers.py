@@ -26,7 +26,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         user = CustomUser.objects.create_user(
             email=validated_data['email'],
             password=validated_data['password'],
-            is_active=False  # User needs to activate via email
+            is_active=False 
         )
         return user
 

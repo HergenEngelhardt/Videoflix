@@ -32,7 +32,6 @@ def send_activation_email(user):
     Das Videoflix Team
     """
     
-    # Send email in background
     queue = django_rq.get_queue('default')
     queue.enqueue(
         send_mail,
@@ -68,7 +67,6 @@ def send_password_reset_email(user):
     Das Videoflix Team
     """
     
-    # Send email in background
     queue = django_rq.get_queue('default')
     queue.enqueue(
         send_mail,

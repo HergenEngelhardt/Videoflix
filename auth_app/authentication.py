@@ -10,13 +10,11 @@ class JWTCookieAuthentication(JWTAuthentication):
     """
     
     def authenticate(self, request):
-        # Get access token from cookie
         raw_token = request.COOKIES.get('access_token')
         
         if raw_token is None:
             return None
         
-        # Validate token
         validated_token = self.get_validated_token(raw_token)
         user = self.get_user(validated_token)
         

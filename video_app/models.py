@@ -42,7 +42,6 @@ class Video(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Erstellt am")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Aktualisiert am")
     
-    # HLS specific fields
     hls_processed = models.BooleanField(default=False, verbose_name="HLS verarbeitet")
     hls_path = models.CharField(
         max_length=500, 
@@ -79,4 +78,4 @@ class Video(models.Model):
                 if os.path.isdir(os.path.join(hls_dir, item)) and item.endswith('p'):
                     resolutions.append(item)
         
-        return sorted(resolutions, key=lambda x: int(x[:-1]))  # Sort by resolution number
+        return sorted(resolutions, key=lambda x: int(x[:-1]))  

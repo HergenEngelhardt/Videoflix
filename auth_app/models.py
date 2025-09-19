@@ -11,7 +11,6 @@ class CustomUser(AbstractUser):
     is_active = models.BooleanField(default=False, verbose_name="Aktiv")
     date_joined = models.DateTimeField(auto_now_add=True, verbose_name="Registrierungsdatum")
     
-    # Use email as username field
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
     

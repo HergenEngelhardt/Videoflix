@@ -18,11 +18,9 @@ def convert_video_to_hls(video_instance):
     video_path = video_instance.video_file.path
     video_id = video_instance.id
     
-    # Create HLS directory
     hls_dir = os.path.join(settings.MEDIA_ROOT, 'hls', str(video_id))
     os.makedirs(hls_dir, exist_ok=True)
     
-    # Define resolutions
     resolutions = [
         {'name': '480p', 'width': 854, 'height': 480, 'bitrate': '1000k'},
         {'name': '720p', 'width': 1280, 'height': 720, 'bitrate': '2500k'},
@@ -36,7 +34,6 @@ def convert_video_to_hls(video_instance):
             
             output_path = os.path.join(res_dir, 'index.m3u8')
             
-            # FFmpeg command for HLS conversion
             cmd = [
                 'ffmpeg',
                 '-i', video_path,
@@ -55,17 +52,15 @@ def convert_video_to_hls(video_instance):
                 '-hls_segment_filename', os.path.join(res_dir, '%03d.ts'),
                 '-f', 'hls',
                 output_path,
-                '-y'  # Overwrite output file
+                '-y'  
             ]
             
-            # Run FFmpeg
             result = subprocess.run(cmd, capture_output=True, text=True)
             
             if result.returncode != 0:
                 print(f"Error converting {resolution['name']}: {result.stderr}")
                 continue
         
-        # Update video instance
         video_instance.hls_processed = True
         video_instance.hls_path = f'hls/{video_id}/'
         video_instance.save()
