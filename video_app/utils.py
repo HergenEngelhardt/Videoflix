@@ -80,6 +80,24 @@ def queue_video_conversion(video_instance):
     queue.enqueue(convert_video_to_hls, video_instance)
 
 
+def get_hls_resolutions(video_instance):
+    """
+    Get available HLS resolutions for a video instance.
+    """
+    if not video_instance.hls_processed or not video_instance.hls_path:
+        return []
+    
+    resolutions = []
+    hls_dir = os.path.join(settings.MEDIA_ROOT, 'hls', str(video_instance.id))
+    
+    if os.path.exists(hls_dir):
+        for item in os.listdir(hls_dir):
+            if os.path.isdir(os.path.join(hls_dir, item)) and item.endswith('p'):
+                resolutions.append(item)
+    
+    return sorted(resolutions, key=lambda x: int(x[:-1]))
+
+
 def cleanup_hls_files(video_instance):
     """
     Clean up HLS files when video is deleted.

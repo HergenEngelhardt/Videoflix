@@ -67,15 +67,5 @@ class Video(models.Model):
     
     def get_hls_resolutions(self):
         """Get available HLS resolutions for this video."""
-        if not self.hls_processed or not self.hls_path:
-            return []
-        
-        resolutions = []
-        hls_dir = os.path.join(settings.MEDIA_ROOT, 'hls', str(self.id))
-        
-        if os.path.exists(hls_dir):
-            for item in os.listdir(hls_dir):
-                if os.path.isdir(os.path.join(hls_dir, item)) and item.endswith('p'):
-                    resolutions.append(item)
-        
-        return sorted(resolutions, key=lambda x: int(x[:-1]))  
+        from .utils import get_hls_resolutions
+        return get_hls_resolutions(self)
