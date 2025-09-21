@@ -10,17 +10,16 @@ from django.conf import settings
 import django_rq
 
 
-def send_activation_email(user):
-    """
-    Send activation email to user.
-    """
+def generate_activation_link(user):
+    """Generate activation link for user."""
     token = default_token_generator.make_token(user)
     uid = urlsafe_base64_encode(force_bytes(user.pk))
-    
-    activation_link = f"{settings.FRONTEND_URL}/activate/{uid}/{token}/"
-    
-    subject = 'Activate your Videoflix Account'
-    message = f"""
+    return f"{settings.FRONTEND_URL}/activate/{uid}/{token}/"
+
+
+def create_activation_message(activation_link):
+    """Create activation email message."""
+    return f"""
     Hello,
     
     please click on the following link to activate your account:
@@ -31,29 +30,30 @@ def send_activation_email(user):
     Best regards
     The Videoflix Team
     """
+
+
+def send_activation_email(user):
+    """Send activation email to user."""
+    activation_link = generate_activation_link(user)
+    message = create_activation_message(activation_link)
     
     queue = django_rq.get_queue('default')
     queue.enqueue(
-        send_mail,
-        subject,
-        message,
-        settings.DEFAULT_FROM_EMAIL,
-        [user.email],
-        fail_silently=False,
+        send_mail, 'Activate your Videoflix Account', message,
+        settings.DEFAULT_FROM_EMAIL, [user.email], fail_silently=False,
     )
 
 
-def send_password_reset_email(user):
-    """
-    Send password reset email to user.
-    """
+def generate_reset_link(user):
+    """Generate password reset link for user."""
     token = default_token_generator.make_token(user)
     uid = urlsafe_base64_encode(force_bytes(user.pk))
-    
-    reset_link = f"{settings.FRONTEND_URL}/password-reset/{uid}/{token}/"
-    
-    subject = 'Password Reset - Videoflix'
-    message = f"""
+    return f"{settings.FRONTEND_URL}/password-reset/{uid}/{token}/"
+
+
+def create_reset_message(reset_link):
+    """Create password reset email message."""
+    return f"""
     Hello,
     
     you have requested a password reset for your Videoflix account.
@@ -66,13 +66,15 @@ def send_password_reset_email(user):
     Best regards
     The Videoflix Team
     """
+
+
+def send_password_reset_email(user):
+    """Send password reset email to user."""
+    reset_link = generate_reset_link(user)
+    message = create_reset_message(reset_link)
     
     queue = django_rq.get_queue('default')
     queue.enqueue(
-        send_mail,
-        subject,
-        message,
-        settings.DEFAULT_FROM_EMAIL,
-        [user.email],
-        fail_silently=False,
+        send_mail, 'Password Reset - Videoflix', message,
+        settings.DEFAULT_FROM_EMAIL, [user.email], fail_silently=False,
     )
