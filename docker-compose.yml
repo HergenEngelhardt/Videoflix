@@ -1,62 +1,78 @@
+version: '3.8'
+
 services:
   db:
     image: postgres:15-alpine
     restart: always
     environment:
-      POSTGRES_DB: videoflix_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${DB_NAME:-videoflix_db}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
+    networks:
+      - videoflix_network
 
   redis:
     image: redis:7-alpine
     restart: always
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-}
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
       timeout: 3s
       retries: 5
+      start_period: 30s
+    networks:
+      - videoflix_network
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
 
   web:
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile
     restart: always
     ports:
-      - "8000:8000"
+      - "${WEB_PORT:-8000}:8000"
+    env_file:
+      - .env
     environment:
-      - DJANGO_SUPERUSER_USERNAME=admin
-      - DJANGO_SUPERUSER_PASSWORD=adminpassword
-      - DJANGO_SUPERUSER_EMAIL=admin@example.com
-      - DEBUG=True
-      - SECRET_KEY=django-insecure-docker-dev-key-change-in-production
-      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
-      - CSRF_TRUSTED_ORIGINS=http://localhost:4200
-      - DB_NAME=videoflix_db
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres
+      - DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME:-admin}
+      - DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD:-adminpassword}
+      - DJANGO_SUPERUSER_EMAIL=${DJANGO_SUPERUSER_EMAIL:-admin@videoflix.com}
+      - DEBUG=${DEBUG:-False}
+      - SECRET_KEY=${SECRET_KEY:-django-insecure-change-this-key}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,0.0.0.0}
+      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS:-http://localhost:4200}
+      - DB_NAME=${DB_NAME:-videoflix_db}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
       - DB_HOST=db
       - DB_PORT=5432
       - REDIS_HOST=redis
-      - REDIS_LOCATION=redis://redis:6379/1
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
       - REDIS_PORT=6379
       - REDIS_DB=0
-      - EMAIL_HOST=smtp.example.com
-      - EMAIL_PORT=587
-      - EMAIL_USE_TLS=True
-      - EMAIL_USE_SSL=False
-      - FRONTEND_URL=http://localhost:3000
+      - EMAIL_BACKEND=${EMAIL_BACKEND:-django.core.mail.backends.console.EmailBackend}
+      - EMAIL_HOST=${EMAIL_HOST:-smtp.example.com}
+      - EMAIL_PORT=${EMAIL_PORT:-587}
+      - EMAIL_USE_TLS=${EMAIL_USE_TLS:-True}
+      - EMAIL_USE_SSL=${EMAIL_USE_SSL:-False}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
     depends_on:
       db:
         condition: service_healthy
@@ -66,21 +82,40 @@ services:
       - .:/app
       - media_data:/app/media
       - static_data:/app/staticfiles
-    command: python manage.py runserver 0.0.0.0:8000
+    networks:
+      - videoflix_network
+    command: >
+      sh -c "python manage.py collectstatic --noinput &&
+             python manage.py migrate &&
+             python manage.py shell -c \"
+             from django.contrib.auth import get_user_model;
+             User = get_user_model();
+             if not User.objects.filter(email='$$DJANGO_SUPERUSER_EMAIL').exists():
+                 User.objects.create_superuser(
+                     email='$$DJANGO_SUPERUSER_EMAIL',
+                     password='$$DJANGO_SUPERUSER_PASSWORD'
+                 )
+             \" &&
+             python manage.py runserver 0.0.0.0:8000"
 
   worker:
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile
     restart: always
+    env_file:
+      - .env
     environment:
-      - DEBUG=True
-      - SECRET_KEY=django-insecure-docker-dev-key-change-in-production
-      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
-      - DB_NAME=videoflix_db
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres
+      - DEBUG=${DEBUG:-False}
+      - SECRET_KEY=${SECRET_KEY:-django-insecure-change-this-key}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,0.0.0.0}
+      - DB_NAME=${DB_NAME:-videoflix_db}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
       - DB_HOST=db
       - DB_PORT=5432
       - REDIS_HOST=redis
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
       - REDIS_PORT=6379
       - REDIS_DB=0
     depends_on:
@@ -91,10 +126,23 @@ services:
     volumes:
       - .:/app
       - media_data:/app/media
+    networks:
+      - videoflix_network
     command: python manage.py rqworker default
 
 volumes:
   postgres_data:
+    driver: local
   redis_data:
+    driver: local
   media_data:
+    driver: local
   static_data:
+    driver: local
+
+networks:
+  videoflix_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
