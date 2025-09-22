@@ -457,7 +457,52 @@ python manage.py migrate
 
 This project is released under the MIT License. See `LICENSE` file for details.
 
-## 📞 Support
+## � API Documentation
+
+### Authentication Endpoints
+- `POST /api/auth/register/` - User registration
+- `POST /api/auth/login/` - Login with JWT
+- `POST /api/auth/logout/` - Logout
+- `POST /api/auth/refresh/` - Refresh JWT token
+- `POST /api/auth/password-reset/` - Password reset request
+- `POST /api/auth/password-reset-confirm/` - Confirm password reset
+
+### Video Endpoints
+- `GET /api/videos/` - List all videos (paginated)
+- `GET /api/videos/{id}/` - Get specific video details
+- `GET /api/videos/categories/` - List all categories
+- `GET /api/videos/{id}/stream/{resolution}/` - Get HLS stream URL
+
+### Example API Usage
+```bash
+# Get videos list
+curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+     http://localhost:8000/api/videos/
+
+# Stream video
+curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+     http://localhost:8000/api/videos/1/stream/720p/
+```
+
+## 🎥 Video Processing Pipeline
+
+### HLS Conversion Process
+1. **Upload**: Video uploaded via Django Admin
+2. **Queue**: Background job queued with Redis/RQ
+3. **Processing**: FFmpeg converts to multiple resolutions:
+   - 480p (1000k bitrate)
+   - 720p (2500k bitrate) 
+   - 1080p (5000k bitrate)
+4. **Storage**: HLS segments stored in media/hls/
+5. **Streaming**: Adaptive bitrate streaming via API
+
+### Performance Optimizations
+- Background video processing prevents UI blocking
+- HLS adaptive streaming reduces bandwidth usage
+- Redis caching for improved response times
+- HTTP-Only JWT cookies for security
+
+## �📞 Support
 
 For questions or issues:
 - GitHub Issues: [https://github.com/HergenEngelhardt/Videoflix/issues](https://github.com/HergenEngelhardt/Videoflix/issues)
