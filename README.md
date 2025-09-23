@@ -13,7 +13,7 @@ A Netflix-like video streaming backend developed with Django REST Framework. The
 
 ### Video Management
 - ✅ Video upload and management via Django Admin
-- ✅ Automatic HLS conversion in different resolutions (480p, 720p, 1080p)
+- ✅ Automatic HLS conversion in multiple resolutions (120p, 360p, 480p, 720p, 1080p)
 - ✅ Video categorization
 - ✅ Thumbnail support
 - ✅ Background video processing with Redis/RQ
@@ -490,8 +490,10 @@ curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
 1. **Upload**: Video uploaded via Django Admin
 2. **Queue**: Background job queued with Redis/RQ
 3. **Processing**: FFmpeg converts to multiple resolutions:
-   - 480p (1000k bitrate)
-   - 720p (2500k bitrate) 
+   - 120p (300k bitrate)
+   - 360p (800k bitrate)
+   - 480p (1200k bitrate)
+   - 720p (2500k bitrate)
    - 1080p (5000k bitrate)
 4. **Storage**: HLS segments stored in media/hls/
 5. **Streaming**: Adaptive bitrate streaming via API
