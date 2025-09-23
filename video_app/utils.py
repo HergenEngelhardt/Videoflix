@@ -7,9 +7,12 @@ managing video processing queues, and handling HLS file operations.
 import os
 import subprocess
 import shutil
+import logging
 from typing import List, Dict, Any, Optional, Union
 from django.conf import settings
 import django_rq
+
+logger = logging.getLogger(__name__)
 
 
 def get_resolution_configs() -> List[Dict[str, Union[str, int]]]:
@@ -28,6 +31,27 @@ def get_resolution_configs() -> List[Dict[str, Union[str, int]]]:
         {'name': '720p', 'width': 1280, 'height': 720, 'bitrate': '2500k'},
         {'name': '1080p', 'width': 1920, 'height': 1080, 'bitrate': '5000k'},
     ]
+
+
+def validate_video_file(video_path: str) -> bool:
+    """
+    Validate if video file exists and is accessible.
+    
+    Args:
+        video_path (str): Path to video file
+        
+    Returns:
+        bool: True if file is valid, False otherwise
+    """
+    if not os.path.exists(video_path):
+        logger.error(f"Video file not found: {video_path}")
+        return False
+        
+    if not os.access(video_path, os.R_OK):
+        logger.error(f"Video file not readable: {video_path}")
+        return False
+        
+    return True
 
 
 def build_ffmpeg_command(
@@ -83,16 +107,21 @@ def convert_single_resolution(
     cmd = build_ffmpeg_command(video_path, resolution, output_path, res_dir)
     
     try:
+        logger.info(f"Starting conversion for {resolution['name']}")
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=3600)
+        
         if result.returncode != 0:
-            print(f"Error converting {resolution['name']}: {result.stderr}")
+            logger.error(f"FFmpeg error for {resolution['name']}: {result.stderr}")
             return False
+            
+        logger.info(f"Successfully converted {resolution['name']}")
         return True
+        
     except subprocess.TimeoutExpired:
-        print(f"Timeout converting {resolution['name']}")
+        logger.error(f"Timeout converting {resolution['name']}")
         return False
     except Exception as e:
-        print(f"Unexpected error converting {resolution['name']}: {str(e)}")
+        logger.error(f"Unexpected error converting {resolution['name']}: {str(e)}")
         return False
 
 
@@ -111,15 +140,22 @@ def convert_video_to_hls(video_instance) -> bool:
         bool: True if conversion successful, False otherwise
     """
     if not video_instance.video_file:
+        logger.error(f"No video file found for video ID {video_instance.id}")
         return False
     
     video_path = video_instance.video_file.path
+    
+    if not validate_video_file(video_path):
+        return False
+    
     video_id = video_instance.id
     hls_dir = os.path.join(settings.MEDIA_ROOT, 'hls', str(video_id))
     os.makedirs(hls_dir, exist_ok=True)
     
     try:
+        logger.info(f"Starting HLS conversion for video ID {video_id}")
         successful_conversions = 0
+        
         for resolution in get_resolution_configs():
             if convert_single_resolution(video_path, resolution, hls_dir):
                 successful_conversions += 1
@@ -129,12 +165,14 @@ def convert_video_to_hls(video_instance) -> bool:
             video_instance.hls_processed = True
             video_instance.hls_path = f'hls/{video_id}/'
             video_instance.save()
+            logger.info(f"HLS conversion completed for video ID {video_id}")
             return True
         else:
+            logger.error(f"All conversions failed for video ID {video_id}")
             return False
             
     except Exception as e:
-        print(f"Error in HLS conversion: {str(e)}")
+        logger.error(f"Error in HLS conversion for video ID {video_id}: {str(e)}")
         return False
 
 
@@ -145,8 +183,12 @@ def queue_video_conversion(video_instance) -> None:
     Args:
         video_instance: Video model instance to queue for processing
     """
-    queue = django_rq.get_queue('default')
-    queue.enqueue(convert_video_to_hls, video_instance)
+    try:
+        queue = django_rq.get_queue('default')
+        queue.enqueue(convert_video_to_hls, video_instance)
+        logger.info(f"Video ID {video_instance.id} queued for conversion")
+    except Exception as e:
+        logger.error(f"Failed to queue video ID {video_instance.id}: {str(e)}")
 
 
 def get_hls_resolutions(video_instance) -> List[str]:
