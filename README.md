@@ -111,6 +111,9 @@ source .venv/bin/activate  # Linux/Mac
 3. **Install dependencies:**
 ```bash
 pip install -r requirements.txt
+
+# Important: Install setuptools if you get import errors
+pip install setuptools
 ```
 
 4. **Configure environment variables:**
@@ -174,6 +177,8 @@ cp .env.docker.example .env
 createdb your_database_name
 # Keep DB_HOST=db for Docker, change to localhost for local PostgreSQL
 ```
+
+**Important for local development:** If you get database connection errors, simply leave the DB_* variables empty in your .env file to use SQLite instead.
 
 6. **Redis Setup (Optional but recommended):**
 ```bash
