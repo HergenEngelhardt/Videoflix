@@ -21,7 +21,7 @@ def get_resolution_configs() -> List[Dict[str, Union[str, int]]]:
     
     Returns:
         List[Dict]: List of resolution configurations containing:
-            - name (str): Resolution name (e.g., '120p', '360p', '720p')
+            - name (str): Resolution name (e.g., '120p', '360p', '480p', '720p', '1080p')
             - width (int): Video width in pixels
             - height (int): Video height in pixels
             - bitrate (str): Target bitrate (e.g., '1000k')
@@ -29,6 +29,7 @@ def get_resolution_configs() -> List[Dict[str, Union[str, int]]]:
     return [
         {'name': '120p', 'width': 214, 'height': 120, 'bitrate': '200k'},
         {'name': '360p', 'width': 640, 'height': 360, 'bitrate': '600k'},
+        {'name': '480p', 'width': 854, 'height': 480, 'bitrate': '1000k'},
         {'name': '720p', 'width': 1280, 'height': 720, 'bitrate': '2500k'},
         {'name': '1080p', 'width': 1920, 'height': 1080, 'bitrate': '5000k'},
     ]
@@ -202,7 +203,7 @@ def get_hls_resolutions(video_instance) -> List[str]:
         video_instance: Video model instance to check
         
     Returns:
-        List[str]: Sorted list of available resolutions (e.g., ['120p', '360p', '720p'])
+        List[str]: Sorted list of available resolutions (e.g., ['120p', '360p', '480p', '720p', '1080p'])
     """
     if not video_instance.hls_processed or not video_instance.hls_path:
         return []
