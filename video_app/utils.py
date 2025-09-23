@@ -21,13 +21,14 @@ def get_resolution_configs() -> List[Dict[str, Union[str, int]]]:
     
     Returns:
         List[Dict]: List of resolution configurations containing:
-            - name (str): Resolution name (e.g., '480p', '720p')
+            - name (str): Resolution name (e.g., '120p', '360p', '720p')
             - width (int): Video width in pixels
             - height (int): Video height in pixels
             - bitrate (str): Target bitrate (e.g., '1000k')
     """
     return [
-        {'name': '480p', 'width': 854, 'height': 480, 'bitrate': '1000k'},
+        {'name': '120p', 'width': 214, 'height': 120, 'bitrate': '200k'},
+        {'name': '360p', 'width': 640, 'height': 360, 'bitrate': '600k'},
         {'name': '720p', 'width': 1280, 'height': 720, 'bitrate': '2500k'},
         {'name': '1080p', 'width': 1920, 'height': 1080, 'bitrate': '5000k'},
     ]
@@ -104,14 +105,14 @@ def convert_single_resolution(
     os.makedirs(res_dir, exist_ok=True)
     
     output_path = os.path.join(res_dir, 'index.m3u8')
-    cmd = build_ffmpeg_command(video_path, resolution, output_path, res_dir)
+    ffmpeg_command = build_ffmpeg_command(video_path, resolution, output_path, res_dir)
     
     try:
         logger.info(f"Starting conversion for {resolution['name']}")
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=3600)
+        conversion_result = subprocess.run(ffmpeg_command, capture_output=True, text=True, timeout=3600)
         
-        if result.returncode != 0:
-            logger.error(f"FFmpeg error for {resolution['name']}: {result.stderr}")
+        if conversion_result.returncode != 0:
+            logger.error(f"FFmpeg error for {resolution['name']}: {conversion_result.stderr}")
             return False
             
         logger.info(f"Successfully converted {resolution['name']}")
@@ -201,7 +202,7 @@ def get_hls_resolutions(video_instance) -> List[str]:
         video_instance: Video model instance to check
         
     Returns:
-        List[str]: Sorted list of available resolutions (e.g., ['480p', '720p'])
+        List[str]: Sorted list of available resolutions (e.g., ['120p', '360p', '720p'])
     """
     if not video_instance.hls_processed or not video_instance.hls_path:
         return []
@@ -259,38 +260,38 @@ def get_video_file_info(video_path: str) -> Dict[str, Any]:
         Dict[str, Any]: Video information including duration, resolution, format
     """
     try:
-        cmd = [
+        ffprobe_command = [
             'ffprobe', '-v', 'quiet', '-print_format', 'json', 
             '-show_format', '-show_streams', video_path
         ]
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        ffprobe_result = subprocess.run(ffprobe_command, capture_output=True, text=True)
         
-        if result.returncode == 0:
+        if ffprobe_result.returncode == 0:
             import json
-            data = json.loads(result.stdout)
+            video_metadata = json.loads(ffprobe_result.stdout)
             
             video_stream = None
-            for stream in data.get('streams', []):
+            for stream in video_metadata.get('streams', []):
                 if stream.get('codec_type') == 'video':
                     video_stream = stream
                     break
             
-            info = {
-                'duration': float(data.get('format', {}).get('duration', 0)),
-                'size': int(data.get('format', {}).get('size', 0)),
-                'format': data.get('format', {}).get('format_name', 'unknown'),
+            video_info = {
+                'duration': float(video_metadata.get('format', {}).get('duration', 0)),
+                'size': int(video_metadata.get('format', {}).get('size', 0)),
+                'format': video_metadata.get('format', {}).get('format_name', 'unknown'),
             }
             
             if video_stream:
-                info.update({
+                video_info.update({
                     'width': video_stream.get('width', 0),
                     'height': video_stream.get('height', 0),
                     'codec': video_stream.get('codec_name', 'unknown'),
                 })
             
-            return info
+            return video_info
         else:
-            logger.error(f"FFprobe error: {result.stderr}")
+            logger.error(f"FFprobe error: {ffprobe_result.stderr}")
             return {}
             
     except Exception as e:
@@ -329,18 +330,18 @@ def generate_video_thumbnail(video_path: str, output_path: str, timestamp: str =
         bool: True if thumbnail generation successful, False otherwise
     """
     try:
-        cmd = [
+        thumbnail_command = [
             'ffmpeg', '-i', video_path, '-ss', timestamp, '-vframes', '1',
             '-vf', 'scale=320:180', output_path, '-y'
         ]
         
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        thumbnail_result = subprocess.run(thumbnail_command, capture_output=True, text=True)
         
-        if result.returncode == 0 and os.path.exists(output_path):
+        if thumbnail_result.returncode == 0 and os.path.exists(output_path):
             logger.info(f"Generated thumbnail: {output_path}")
             return True
         else:
-            logger.error(f"Failed to generate thumbnail: {result.stderr}")
+            logger.error(f"Failed to generate thumbnail: {thumbnail_result.stderr}")
             return False
             
     except Exception as e:

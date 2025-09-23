@@ -17,9 +17,9 @@ from ..models import Video
 def video_list_view(request):
     """
     GET /api/video/
-    Get list of all available videos.
+    Get list of all available videos grouped by categories and ordered by creation date DESC.
     """
-    videos = Video.objects.select_related('category').all()
+    videos = Video.objects.select_related('category').order_by('-created_at')
     serializer = VideoListSerializer(videos, many=True, context={'request': request})
     
     return Response(serializer.data, status=status.HTTP_200_OK)

@@ -1,3 +1,2 @@
-from django.shortcuts import render
-
-# Create your views here.
+# This file is intentionally empty.
+# All video views are implemented in video_app/api/views.py
