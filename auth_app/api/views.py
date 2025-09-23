@@ -39,10 +39,25 @@ def register_view(request):
         send_activation_email(user)
         return Response(create_user_response(user), status=status.HTTP_201_CREATED)
     
-    return Response(
-        {'detail': 'Please check your input and try again.'}, 
-        status=status.HTTP_400_BAD_REQUEST
-    )
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+def decode_user_from_uidb64(uidb64):
+    """Decode user ID from base64 and get user object."""
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        return get_object_or_404(CustomUser, pk=uid)
+    except (TypeError, ValueError, OverflowError):
+        return None
+
+
+def activate_user_account(user, token):
+    """Activate user account if token is valid."""
+    if default_token_generator.check_token(user, token):
+        user.is_active = True
+        user.save()
+        return True
+    return False
 
 
 @api_view(['GET'])
@@ -52,18 +67,14 @@ def activate_view(request, uidb64, token):
     GET /api/activate/<uidb64>/<token>/
     Activate user account using email token.
     """
-    try:
-        uid = force_str(urlsafe_base64_decode(uidb64))
-        user = get_object_or_404(CustomUser, pk=uid)
-    except (TypeError, ValueError, OverflowError):
+    user = decode_user_from_uidb64(uidb64)
+    if not user:
         return Response(
             {'message': 'Activation failed.'}, 
             status=status.HTTP_400_BAD_REQUEST
         )
     
-    if default_token_generator.check_token(user, token):
-        user.is_active = True
-        user.save()
+    if activate_user_account(user, token):
         return Response(
             {'message': 'Account successfully activated.'}, 
             status=status.HTTP_200_OK
@@ -110,10 +121,7 @@ def login_view(request):
         set_auth_cookies(response, refresh.access_token, refresh, request)
         return response
     
-    return Response(
-        {'detail': 'Please check your input and try again.'}, 
-        status=status.HTTP_400_BAD_REQUEST
-    )
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])
@@ -146,6 +154,26 @@ def logout_view(request):
     return response
 
 
+def create_refresh_response(access_token):
+    """Create response for token refresh."""
+    return Response({
+        'detail': 'Token refreshed',
+        'access': str(access_token)
+    }, status=status.HTTP_200_OK)
+
+
+def set_access_token_cookie(response, access_token, request):
+    """Set access token cookie on response."""
+    response.set_cookie(
+        'access_token',
+        str(access_token),
+        max_age=3600, 
+        httponly=True,
+        secure=not request.META.get('HTTP_HOST', '').startswith('localhost'),
+        samesite='Lax'
+    )
+
+
 @api_view(['POST'])
 def token_refresh_view(request):
     """
@@ -164,20 +192,8 @@ def token_refresh_view(request):
         refresh = RefreshToken(refresh_token)
         access_token = refresh.access_token
         
-        response = Response({
-            'detail': 'Token refreshed',
-            'access': str(access_token)
-        }, status=status.HTTP_200_OK)
-        
-        response.set_cookie(
-            'access_token',
-            str(access_token),
-            max_age=3600, 
-            httponly=True,
-            secure=not request.META.get('HTTP_HOST', '').startswith('localhost'),
-            samesite='Lax'
-        )
-        
+        response = create_refresh_response(access_token)
+        set_access_token_cookie(response, access_token, request)
         return response
         
     except TokenError:
@@ -208,10 +224,18 @@ def password_reset_view(request):
             'detail': 'An email has been sent to reset your password.'
         }, status=status.HTTP_200_OK)
     
-    return Response(
-        {'detail': 'Please check your input and try again.'}, 
-        status=status.HTTP_400_BAD_REQUEST
-    )
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+def validate_reset_token(user, token):
+    """Validate password reset token."""
+    return default_token_generator.check_token(user, token)
+
+
+def reset_user_password(user, new_password):
+    """Reset user password."""
+    user.set_password(new_password)
+    user.save()
 
 
 @api_view(['POST'])
@@ -221,16 +245,14 @@ def password_confirm_view(request, uidb64, token):
     POST /api/password_confirm/<uidb64>/<token>/
     Confirm password reset with new password.
     """
-    try:
-        uid = force_str(urlsafe_base64_decode(uidb64))
-        user = get_object_or_404(CustomUser, pk=uid)
-    except (TypeError, ValueError, OverflowError):
+    user = decode_user_from_uidb64(uidb64)
+    if not user:
         return Response(
             {'detail': 'Invalid reset link.'}, 
             status=status.HTTP_400_BAD_REQUEST
         )
     
-    if not default_token_generator.check_token(user, token):
+    if not validate_reset_token(user, token):
         return Response(
             {'detail': 'Invalid or expired token.'}, 
             status=status.HTTP_400_BAD_REQUEST
@@ -238,14 +260,10 @@ def password_confirm_view(request, uidb64, token):
     
     serializer = PasswordConfirmSerializer(data=request.data)
     if serializer.is_valid():
-        user.set_password(serializer.validated_data['new_password'])
-        user.save()
+        reset_user_password(user, serializer.validated_data['new_password'])
         
         return Response({
             'detail': 'Your Password has been successfully reset.'
         }, status=status.HTTP_200_OK)
     
-    return Response(
-        {'detail': 'Please check your input and try again.'}, 
-        status=status.HTTP_400_BAD_REQUEST
-    )
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
