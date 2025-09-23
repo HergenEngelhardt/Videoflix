@@ -239,12 +239,63 @@ def cleanup_hls_files(video_instance) -> bool:
     if os.path.exists(hls_dir):
         try:
             shutil.rmtree(hls_dir)
+            logger.info(f"Cleaned up HLS files for video ID {video_instance.id}")
             return True
         except Exception as e:
-            print(f"Error cleaning up HLS files for video {video_instance.id}: {str(e)}")
+            logger.error(f"Error cleaning up HLS files for video {video_instance.id}: {str(e)}")
             return False
     
     return True
+
+
+def get_video_file_info(video_path: str) -> Dict[str, Any]:
+    """
+    Get basic information about video file using ffprobe.
+    
+    Args:
+        video_path (str): Path to video file
+        
+    Returns:
+        Dict[str, Any]: Video information including duration, resolution, format
+    """
+    try:
+        cmd = [
+            'ffprobe', '-v', 'quiet', '-print_format', 'json', 
+            '-show_format', '-show_streams', video_path
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        
+        if result.returncode == 0:
+            import json
+            data = json.loads(result.stdout)
+            
+            video_stream = None
+            for stream in data.get('streams', []):
+                if stream.get('codec_type') == 'video':
+                    video_stream = stream
+                    break
+            
+            info = {
+                'duration': float(data.get('format', {}).get('duration', 0)),
+                'size': int(data.get('format', {}).get('size', 0)),
+                'format': data.get('format', {}).get('format_name', 'unknown'),
+            }
+            
+            if video_stream:
+                info.update({
+                    'width': video_stream.get('width', 0),
+                    'height': video_stream.get('height', 0),
+                    'codec': video_stream.get('codec_name', 'unknown'),
+                })
+            
+            return info
+        else:
+            logger.error(f"FFprobe error: {result.stderr}")
+            return {}
+            
+    except Exception as e:
+        logger.error(f"Error getting video info: {str(e)}")
+        return {}
 
 
 def get_hls_playlist_url(video_instance, resolution: str) -> Optional[str]:
@@ -263,3 +314,61 @@ def get_hls_playlist_url(video_instance, resolution: str) -> Optional[str]:
         return None
         
     return f"{settings.MEDIA_URL}hls/{video_instance.id}/{resolution}/index.m3u8"
+
+
+def generate_video_thumbnail(video_path: str, output_path: str, timestamp: str = "00:00:10") -> bool:
+    """
+    Generate thumbnail image from video at specified timestamp.
+    
+    Args:
+        video_path (str): Path to source video file
+        output_path (str): Path for output thumbnail image
+        timestamp (str): Timestamp in format HH:MM:SS
+        
+    Returns:
+        bool: True if thumbnail generation successful, False otherwise
+    """
+    try:
+        cmd = [
+            'ffmpeg', '-i', video_path, '-ss', timestamp, '-vframes', '1',
+            '-vf', 'scale=320:180', output_path, '-y'
+        ]
+        
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        
+        if result.returncode == 0 and os.path.exists(output_path):
+            logger.info(f"Generated thumbnail: {output_path}")
+            return True
+        else:
+            logger.error(f"Failed to generate thumbnail: {result.stderr}")
+            return False
+            
+    except Exception as e:
+        logger.error(f"Error generating thumbnail: {str(e)}")
+        return False
+
+
+def check_conversion_status(video_instance) -> Dict[str, Any]:
+    """
+    Check the status of HLS conversion for a video.
+    
+    Args:
+        video_instance: Video model instance
+        
+    Returns:
+        Dict[str, Any]: Status information including progress and available resolutions
+    """
+    status_info = {
+        'is_processed': video_instance.hls_processed,
+        'hls_path': video_instance.hls_path,
+        'available_resolutions': [],
+        'total_resolutions': len(get_resolution_configs()),
+    }
+    
+    if video_instance.hls_processed:
+        status_info['available_resolutions'] = get_hls_resolutions(video_instance)
+        status_info['progress'] = len(status_info['available_resolutions']) / status_info['total_resolutions'] * 100
+    else:
+        status_info['progress'] = 0
+    
+    return status_info
