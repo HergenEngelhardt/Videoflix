@@ -7,7 +7,7 @@ from django.conf import settings
 from django.shortcuts import get_object_or_404
 import os
 
-from .serializers import VideoListSerializer
+from .serializers import VideoListSerializer, VideoDetailSerializer
 from .permissions import IsAuthenticatedForVideo
 from ..models import Video
 
@@ -21,6 +21,19 @@ def video_list_view(request):
     """
     videos = Video.objects.select_related('category').all()
     serializer = VideoListSerializer(videos, many=True, context={'request': request})
+    
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def video_detail_view(request, movie_id):
+    """
+    GET /api/video/<movie_id>/
+    Get detailed information about a specific video.
+    """
+    video = get_object_or_404(Video, id=movie_id)
+    serializer = VideoDetailSerializer(video, context={'request': request})
     
     return Response(serializer.data, status=status.HTTP_200_OK)
 
