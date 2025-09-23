@@ -7,9 +7,9 @@ from django.conf import settings
 from django.shortcuts import get_object_or_404
 import os
 
-from .serializers import VideoListSerializer, VideoDetailSerializer
+from .serializers import VideoListSerializer, VideoDetailSerializer, CategorySerializer
 from .permissions import IsAuthenticatedForVideo
-from ..models import Video
+from ..models import Video, Category
 
 
 @api_view(['GET'])
@@ -34,6 +34,33 @@ def video_detail_view(request, movie_id):
     """
     video = get_object_or_404(Video, id=movie_id)
     serializer = VideoDetailSerializer(video, context={'request': request})
+    
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def category_list_view(request):
+    """
+    GET /api/video/categories/
+    Get list of all available categories.
+    """
+    categories = Category.objects.all()
+    serializer = CategorySerializer(categories, many=True)
+    
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def videos_by_category_view(request, category_id):
+    """
+    GET /api/video/category/<category_id>/
+    Get videos filtered by category.
+    """
+    category = get_object_or_404(Category, id=category_id)
+    videos = Video.objects.select_related('category').filter(category=category)
+    serializer = VideoListSerializer(videos, many=True, context={'request': request})
     
     return Response(serializer.data, status=status.HTTP_200_OK)
 
