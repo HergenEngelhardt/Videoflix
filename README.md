@@ -2,29 +2,29 @@
 
 A Netflix-like video streaming backend developed with Django REST Framework. The system supports user authentication, HLS video streaming in multiple resolutions, and background video processing.
 
-## 🎯 Features
+## Features
 
 ### Authentication
-- ✅ User registration with email activation
-- ✅ Login/Logout with HTTP-Only JWT Cookies
-- ✅ Token refresh mechanism
-- ✅ Password reset via email
-- ✅ Custom User Model with email as username
+- User registration with email activation
+- Login/Logout with HTTP-Only JWT Cookies
+- Token refresh mechanism
+- Password reset via email
+- Custom User Model with email as username
 
 ### Video Management
-- ✅ Video upload and management via Django Admin
-- ✅ Automatic HLS conversion in multiple resolutions (120p, 360p, 480p, 720p, 1080p)
-- ✅ Video categorization
-- ✅ Thumbnail support
-- ✅ Background video processing with Redis/RQ
+- Video upload and management via Django Admin
+- Automatic HLS conversion in multiple resolutions (120p, 360p, 480p, 720p, 1080p)
+- Video categorization
+- Thumbnail support
+- Background video processing with Redis/RQ
 
 ### API Endpoints
-- ✅ RESTful API according to exact specification
-- ✅ HLS manifest and segment streaming
-- ✅ Secure video delivery only for authenticated users
-- ✅ CORS support for frontend integration
+- RESTful API according to exact specification
+- HLS manifest and segment streaming
+- Secure video delivery only for authenticated users
+- CORS support for frontend integration
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Option 1: Docker Setup (Recommended)
 
@@ -114,45 +114,73 @@ pip install -r requirements.txt
 ```
 
 4. **Configure environment variables:**
-Create a `.env` file based on the example:
+For local development, create a `.env` file:
 ```env
-SECRET_KEY=your-secret-key
+# Django Superuser (will be created automatically)
+DJANGO_SUPERUSER_USERNAME=admin
+DJANGO_SUPERUSER_PASSWORD=your_admin_password
+DJANGO_SUPERUSER_EMAIL=admin@yourdomain.com
+
+# Django Settings
+SECRET_KEY="your-secret-key-here"
 DEBUG=True
 ALLOWED_HOSTS=localhost,127.0.0.1
+CSRF_TRUSTED_ORIGINS=http://localhost:5500,http://127.0.0.1:5500
 
-# Database (SQLite for local development)
-DATABASE_NAME=db.sqlite3
-DATABASE_USER=
-DATABASE_PASSWORD=
-DATABASE_HOST=
-DATABASE_PORT=
+# Database Settings (PostgreSQL - recommended, or leave empty for SQLite)
+DB_NAME=your_database_name
+DB_USER=your_database_user
+DB_PASSWORD=your_database_password
+DB_HOST=localhost
+DB_PORT=5432
 
-# Email Settings
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USE_TLS=True
-EMAIL_HOST_USER=your-email@gmail.com
-EMAIL_HOST_PASSWORD=your-app-password
+# For SQLite (local development): Leave DB_* empty or set DB_HOST to empty
+# The system will automatically use SQLite if PostgreSQL connection fails
 
-# Redis (optional for local development)
+# Redis Settings (for local development change REDIS_HOST to localhost)
 REDIS_HOST=localhost
+REDIS_LOCATION=redis://localhost:6379/1
 REDIS_PORT=6379
 REDIS_DB=0
 
-FRONTEND_URL=http://localhost:3000
+# Email Settings
+EMAIL_HOST=smtp.example.com
+EMAIL_PORT=587
+EMAIL_HOST_USER=your_email_user
+EMAIL_HOST_PASSWORD=your_email_password
+EMAIL_USE_TLS=True
+EMAIL_USE_SSL=False
+DEFAULT_FROM_EMAIL=your_email@example.com
+EMAIL_USE_TLS=True
+EMAIL_USE_SSL=False
+DEFAULT_FROM_EMAIL=default_from_email
 ```
 
-5. **For PostgreSQL (optional):**
+**Note:** You can copy and modify the Docker example file for local development:
+```bash
+cp .env.docker.example .env
+# Edit .env with your local settings (change hosts, passwords, etc.)
+```
+
+5. **Database Setup:**
+
+**Option A: SQLite (Default - No setup required)**
+- For local development, change `DB_HOST=localhost` or leave DB variables empty
+- SQLite database will be created automatically
+
+**Option B: PostgreSQL (Recommended for production)**
 ```bash
 # Install PostgreSQL and create database
-createdb videoflix_db
+createdb your_database_name
+# Keep DB_HOST=db for Docker, change to localhost for local PostgreSQL
 ```
 
-6. **Install Redis (optional):**
+6. **Redis Setup (Optional but recommended):**
 ```bash
 # Windows: https://github.com/microsoftarchive/redis/releases
 # Linux: sudo apt-get install redis-server
 # Mac: brew install redis
+# For local development, change REDIS_HOST=localhost in .env
 ```
 
 7. **Migrate database:**
@@ -162,6 +190,10 @@ python manage.py migrate
 
 8. **Create superuser:**
 ```bash
+# Automatic creation (if environment variables are set):
+python manage.py create_superuser_if_env
+
+# Manual creation (if needed):
 python manage.py createsuperuser
 ```
 
@@ -178,17 +210,17 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
-11. **Start RQ Worker (in separate terminal):**
+11. **Start RQ Worker (in separate terminal, if Redis is configured):**
 ```bash
 python manage.py rqworker default
 ```
 
-12. **Check RQ Dashboard:**
+12. **Check RQ Dashboard (if Redis is configured):**
 ```bash
 # RQ Dashboard: http://localhost:8000/django-rq/
 ```
 
-## 📖 API Documentation
+## API Documentation
 
 ### Authentication Endpoints
 
@@ -271,44 +303,7 @@ GET /api/video/<movie_id>/<resolution>/<segment>/
 Authorization: Bearer <token> (or HTTP-Only Cookie)
 ```
 
-## 🏗️ Project Structure
-
-```
-Videoflix/
-├── core/                    # Django project settings
-│   ├── settings.py         # Main configuration
-│   ├── urls.py            # URL routing
-│   └── wsgi.py            # WSGI configuration
-├── auth_app/              # Authentication
-│   ├── api/               # API-specific files
-│   │   ├── serializers.py # DRF Serializers
-│   │   ├── views.py       # API Views
-│   │   ├── urls.py        # URL patterns
-│   │   └── permissions.py # Custom permissions
-│   ├── models.py          # CustomUser model
-│   ├── admin.py           # Admin configuration
-│   ├── utils.py           # Helper functions
-│   └── authentication.py  # Custom JWT authentication
-├── video_app/             # Video management
-│   ├── api/               # API-specific files
-│   │   ├── serializers.py # DRF Serializers
-│   │   ├── views.py       # API Views
-│   │   ├── urls.py        # URL patterns
-│   │   └── permissions.py # Custom permissions
-│   ├── models.py          # Video & Category models
-│   ├── admin.py           # Admin configuration
-│   └── utils.py           # Video processing
-├── media/                 # Uploaded files
-│   ├── thumbnails/        # Video thumbnails
-│   ├── videos/           # Original videos
-│   └── hls/              # HLS files
-├── docker-compose.yml     # Docker configuration
-├── Dockerfile            # Docker build
-├── requirements.txt      # Python dependencies
-└── README.md            # This file
-```
-
-## 🐳 Docker Commands
+## Docker Commands
 
 ### Development
 ```bash
@@ -388,7 +383,7 @@ docker stats
 - Optimized DB queries with select_related
 - Static/Media file serving
 
-## 📱 Admin Interface
+## Admin Interface
 
 The Django Admin Interface is available at `/admin/` and provides:
 
@@ -396,7 +391,7 @@ The Django Admin Interface is available at `/admin/` and provides:
 - **Video Management:** Upload videos, manage categories
 - **Monitoring:** Monitor HLS processing status
 
-## 🔍 Development
+## Development
 
 ### Code Quality Standards
 - PEP 8 compliant
@@ -421,7 +416,7 @@ coverage report
 - Django Debug Toolbar (optional)
 - Logging configuration in settings.py
 
-## 🚀 Deployment
+## Deployment
 
 ### Production Setup
 1. **Set environment variables:**
@@ -445,7 +440,7 @@ python manage.py collectstatic
 python manage.py migrate
 ```
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
@@ -453,38 +448,11 @@ python manage.py migrate
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## 📄 License
+## License
 
 This project is released under the MIT License. See `LICENSE` file for details.
 
-## � API Documentation
-
-### Authentication Endpoints
-- `POST /api/auth/register/` - User registration
-- `POST /api/auth/login/` - Login with JWT
-- `POST /api/auth/logout/` - Logout
-- `POST /api/auth/refresh/` - Refresh JWT token
-- `POST /api/auth/password-reset/` - Password reset request
-- `POST /api/auth/password-reset-confirm/` - Confirm password reset
-
-### Video Endpoints
-- `GET /api/videos/` - List all videos (paginated)
-- `GET /api/videos/{id}/` - Get specific video details
-- `GET /api/videos/categories/` - List all categories
-- `GET /api/videos/{id}/stream/{resolution}/` - Get HLS stream URL
-
-### Example API Usage
-```bash
-# Get videos list
-curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-     http://localhost:8000/api/videos/
-
-# Stream video
-curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-     http://localhost:8000/api/videos/1/stream/720p/
-```
-
-## 🎥 Video Processing Pipeline
+## Video Processing Pipeline
 
 ### HLS Conversion Process
 1. **Upload**: Video uploaded via Django Admin
@@ -504,7 +472,7 @@ curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
 - Redis caching for improved response times
 - HTTP-Only JWT cookies for security
 
-## �📞 Support
+## Support
 
 For questions or issues:
 - GitHub Issues: [https://github.com/HergenEngelhardt/Videoflix/issues](https://github.com/HergenEngelhardt/Videoflix/issues)
