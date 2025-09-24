@@ -20,11 +20,11 @@ class VideoListSerializer(serializers.ModelSerializer):
         model = Video
         fields = (
             'id', 
+            'created_at',
             'title', 
             'description', 
-            'category', 
-            'thumbnail_url', 
-            'created_at'
+            'thumbnail_url',
+            'category'
         )
         read_only_fields = ('id', 'created_at')
     
