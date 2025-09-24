@@ -1,0 +1,84 @@
+# This file specifies files and directories that should be ignored by Docker when building images.
+# It is similar to .gitignore but specific to Docker.
+
+# Python
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.so
+*.egg
+*.egg-info/
+.eggs/
+dist/
+build/
+*.whl
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Environment files (security)
+.env
+.env.local
+.env.*.local
+
+# Database files
+*.db
+*.sqlite3
+db.sqlite3
+
+# Logs
+logs/
+*.log
+
+# Documentation
+docs/
+README.md
+*.md
+
+# Docker files (avoid recursion)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Cache directories
+.cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Media files (will be created in container)
+media/
+staticfiles/
+
+# Node.js (if any)
+node_modules/
+npm-debug.log*
+
+# Temporary files
+.tmp/
+temp/
+*.tmp
