@@ -60,30 +60,34 @@ def activate_user_account(user, token):
     return False
 
 
+def create_activation_error_response():
+    """Create activation error response."""
+    return Response(
+        {'message': 'Activation failed.'}, 
+        status=status.HTTP_400_BAD_REQUEST
+    )
+
+
+def create_activation_success_response():
+    """Create activation success response."""
+    return Response(
+        {'message': 'Account successfully activated.'}, 
+        status=status.HTTP_200_OK
+    )
+
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def activate_view(request, uidb64, token):
-    """
-    GET /api/activate/<uidb64>/<token>/
-    Activate user account using email token.
-    """
+    """GET /api/activate/<uidb64>/<token>/ - Activate user account."""
     user = decode_user_from_uidb64(uidb64)
     if not user:
-        return Response(
-            {'message': 'Activation failed.'}, 
-            status=status.HTTP_400_BAD_REQUEST
-        )
+        return create_activation_error_response()
     
     if activate_user_account(user, token):
-        return Response(
-            {'message': 'Account successfully activated.'}, 
-            status=status.HTTP_200_OK
-        )
+        return create_activation_success_response()
     else:
-        return Response(
-            {'message': 'Activation failed.'}, 
-            status=status.HTTP_400_BAD_REQUEST
-        )
+        return create_activation_error_response()
 
 
 def create_login_response(user):
@@ -124,12 +128,31 @@ def login_view(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+def blacklist_refresh_token(refresh_token: str) -> None:
+    """Blacklist refresh token safely."""
+    try:
+        token = RefreshToken(refresh_token)
+        token.blacklist()
+    except TokenError:
+        pass
+
+
+def create_logout_response() -> Response:
+    """Create logout success response."""
+    return Response({
+        'detail': 'Logout successful! All tokens will be deleted. Refresh token is now invalid.'
+    }, status=status.HTTP_200_OK)
+
+
+def clear_auth_cookies(response: Response) -> None:
+    """Clear authentication cookies from response."""
+    response.delete_cookie('access_token')
+    response.delete_cookie('refresh_token')
+
+
 @api_view(['POST'])
 def logout_view(request):
-    """
-    POST /api/logout/
-    Logout user and blacklist refresh token.
-    """
+    """POST /api/logout/ - Logout user and blacklist refresh token."""
     refresh_token = request.COOKIES.get('refresh_token')
     
     if not refresh_token:
@@ -138,18 +161,9 @@ def logout_view(request):
             status=status.HTTP_400_BAD_REQUEST
         )
     
-    try:
-        token = RefreshToken(refresh_token)
-        token.blacklist()
-    except TokenError:
-        pass 
-    
-    response = Response({
-        'detail': 'Logout successful! All tokens will be deleted. Refresh token is now invalid.'
-    }, status=status.HTTP_200_OK)
-    
-    response.delete_cookie('access_token')
-    response.delete_cookie('refresh_token')
+    blacklist_refresh_token(refresh_token)
+    response = create_logout_response()
+    clear_auth_cookies(response)
     
     return response
 
@@ -203,26 +217,31 @@ def token_refresh_view(request):
         )
 
 
+def send_reset_email_if_user_exists(email: str) -> None:
+    """Send password reset email if user exists (security by obscurity)."""
+    try:
+        user = CustomUser.objects.get(email=email)
+        send_password_reset_email(user)
+    except CustomUser.DoesNotExist:
+        pass
+
+
+def create_password_reset_response() -> Response:
+    """Create password reset response."""
+    return Response({
+        'detail': 'An email has been sent to reset your password.'
+    }, status=status.HTTP_200_OK)
+
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def password_reset_view(request):
-    """
-    POST /api/password_reset/
-    Send password reset email.
-    """
+    """POST /api/password_reset/ - Send password reset email."""
     serializer = PasswordResetSerializer(data=request.data)
     if serializer.is_valid():
         email = serializer.validated_data['email']
-        
-        try:
-            user = CustomUser.objects.get(email=email)
-            send_password_reset_email(user)
-        except CustomUser.DoesNotExist:
-            pass  
-        
-        return Response({
-            'detail': 'An email has been sent to reset your password.'
-        }, status=status.HTTP_200_OK)
+        send_reset_email_if_user_exists(email)
+        return create_password_reset_response()
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -238,32 +257,42 @@ def reset_user_password(user, new_password):
     user.save()
 
 
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def password_confirm_view(request, uidb64, token):
-    """
-    POST /api/password_confirm/<uidb64>/<token>/
-    Confirm password reset with new password.
-    """
+def validate_reset_request(uidb64: str, token: str) -> tuple:
+    """Validate password reset request parameters."""
     user = decode_user_from_uidb64(uidb64)
     if not user:
-        return Response(
+        return None, Response(
             {'detail': 'Invalid reset link.'}, 
             status=status.HTTP_400_BAD_REQUEST
         )
     
     if not validate_reset_token(user, token):
-        return Response(
+        return None, Response(
             {'detail': 'Invalid or expired token.'}, 
             status=status.HTTP_400_BAD_REQUEST
         )
     
+    return user, None
+
+
+def process_password_reset(request, user) -> Response:
+    """Process password reset with new password."""
     serializer = PasswordConfirmSerializer(data=request.data)
     if serializer.is_valid():
         reset_user_password(user, serializer.validated_data['new_password'])
-        
         return Response({
             'detail': 'Your Password has been successfully reset.'
         }, status=status.HTTP_200_OK)
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def password_confirm_view(request, uidb64, token):
+    """POST /api/password_confirm/<uidb64>/<token>/ - Confirm password reset."""
+    user, error_response = validate_reset_request(uidb64, token)
+    if error_response:
+        return error_response
+    
+    return process_password_reset(request, user)

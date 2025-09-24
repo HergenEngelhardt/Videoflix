@@ -27,9 +27,9 @@ def get_resolution_configs() -> List[Dict[str, Union[str, int]]]:
             - bitrate (str): Target bitrate (e.g., '1000k')
     """
     return [
-        {'name': '120p', 'width': 214, 'height': 120, 'bitrate': '200k'},
-        {'name': '360p', 'width': 640, 'height': 360, 'bitrate': '600k'},
-        {'name': '480p', 'width': 854, 'height': 480, 'bitrate': '1000k'},
+        {'name': '120p', 'width': 214, 'height': 120, 'bitrate': '300k'},
+        {'name': '360p', 'width': 640, 'height': 360, 'bitrate': '800k'},
+        {'name': '480p', 'width': 854, 'height': 480, 'bitrate': '1200k'},
         {'name': '720p', 'width': 1280, 'height': 720, 'bitrate': '2500k'},
         {'name': '1080p', 'width': 1920, 'height': 1080, 'bitrate': '5000k'},
     ]
@@ -56,34 +56,76 @@ def validate_video_file(video_path: str) -> bool:
     return True
 
 
+def get_basic_ffmpeg_args(video_path: str) -> List[str]:
+    """Get basic FFmpeg arguments."""
+    return ['ffmpeg', '-i', video_path, '-c:v', 'libx264', '-c:a', 'aac']
+
+
+def get_audio_args() -> List[str]:
+    """Get audio encoding arguments."""
+    return ['-strict', 'experimental', '-ac', '2', '-b:a', '128k', '-ar', '44100']
+
+
+def get_video_args(resolution: Dict[str, Union[str, int]]) -> List[str]:
+    """Get video encoding arguments for resolution."""
+    return [
+        '-vf', f'scale={resolution["width"]}:{resolution["height"]}',
+        '-b:v', resolution['bitrate'], '-maxrate', resolution['bitrate'],
+        '-bufsize', str(int(resolution['bitrate'][:-1]) * 2) + 'k'
+    ]
+
+
+def get_hls_args(res_dir: str, output_path: str) -> List[str]:
+    """Get HLS-specific arguments."""
+    return [
+        '-hls_time', '10', '-hls_list_size', '0',
+        '-hls_segment_filename', os.path.join(res_dir, '%03d.ts'),
+        '-f', 'hls', output_path, '-y'
+    ]
+
+
 def build_ffmpeg_command(
     video_path: str, 
     resolution: Dict[str, Union[str, int]], 
     output_path: str, 
     res_dir: str
 ) -> List[str]:
-    """
-    Build FFmpeg command for HLS conversion with specified resolution.
-    
-    Args:
-        video_path (str): Path to source video file
-        resolution (Dict): Resolution configuration dict
-        output_path (str): Path for output m3u8 file
-        res_dir (str): Directory for HLS segments
-        
-    Returns:
-        List[str]: Complete FFmpeg command as list of arguments
-    """
-    return [
-        'ffmpeg', '-i', video_path, '-c:v', 'libx264', '-c:a', 'aac',
-        '-strict', 'experimental', '-ac', '2', '-b:a', '128k', '-ar', '44100',
-        '-vf', f'scale={resolution["width"]}:{resolution["height"]}',
-        '-b:v', resolution['bitrate'], '-maxrate', resolution['bitrate'],
-        '-bufsize', str(int(resolution['bitrate'][:-1]) * 2) + 'k',
-        '-hls_time', '10', '-hls_list_size', '0',
-        '-hls_segment_filename', os.path.join(res_dir, '%03d.ts'),
-        '-f', 'hls', output_path, '-y'
-    ]
+    """Build complete FFmpeg command for HLS conversion."""
+    command = get_basic_ffmpeg_args(video_path)
+    command.extend(get_audio_args())
+    command.extend(get_video_args(resolution))
+    command.extend(get_hls_args(res_dir, output_path))
+    return command
+
+
+def setup_resolution_directory(hls_dir: str, resolution_name: str) -> str:
+    """Setup directory for specific resolution."""
+    res_dir = os.path.join(hls_dir, resolution_name)
+    os.makedirs(res_dir, exist_ok=True)
+    return res_dir
+
+
+def run_ffmpeg_conversion(ffmpeg_command: List[str], resolution_name: str) -> bool:
+    """Execute FFmpeg conversion with error handling."""
+    try:
+        logger.info(f"Starting conversion for {resolution_name}")
+        result = subprocess.run(ffmpeg_command, capture_output=True, text=True, timeout=3600)
+        return handle_conversion_result(result, resolution_name)
+    except subprocess.TimeoutExpired:
+        logger.error(f"Timeout converting {resolution_name}")
+        return False
+    except Exception as e:
+        logger.error(f"Unexpected error converting {resolution_name}: {str(e)}")
+        return False
+
+
+def handle_conversion_result(result, resolution_name: str) -> bool:
+    """Handle FFmpeg conversion result."""
+    if result.returncode != 0:
+        logger.error(f"FFmpeg error for {resolution_name}: {result.stderr}")
+        return False
+    logger.info(f"Successfully converted {resolution_name}")
+    return True
 
 
 def convert_single_resolution(
@@ -91,88 +133,62 @@ def convert_single_resolution(
     resolution: Dict[str, Union[str, int]], 
     hls_dir: str
 ) -> bool:
-    """
-    Convert video to single HLS resolution.
-    
-    Args:
-        video_path (str): Path to source video file
-        resolution (Dict): Resolution configuration
-        hls_dir (str): Base HLS directory
-        
-    Returns:
-        bool: True if conversion successful, False otherwise
-    """
-    res_dir = os.path.join(hls_dir, resolution['name'])
-    os.makedirs(res_dir, exist_ok=True)
-    
+    """Convert video to single HLS resolution."""
+    res_dir = setup_resolution_directory(hls_dir, resolution['name'])
     output_path = os.path.join(res_dir, 'index.m3u8')
     ffmpeg_command = build_ffmpeg_command(video_path, resolution, output_path, res_dir)
-    
-    try:
-        logger.info(f"Starting conversion for {resolution['name']}")
-        conversion_result = subprocess.run(ffmpeg_command, capture_output=True, text=True, timeout=3600)
-        
-        if conversion_result.returncode != 0:
-            logger.error(f"FFmpeg error for {resolution['name']}: {conversion_result.stderr}")
-            return False
-            
-        logger.info(f"Successfully converted {resolution['name']}")
-        return True
-        
-    except subprocess.TimeoutExpired:
-        logger.error(f"Timeout converting {resolution['name']}")
-        return False
-    except Exception as e:
-        logger.error(f"Unexpected error converting {resolution['name']}: {str(e)}")
-        return False
+    return run_ffmpeg_conversion(ffmpeg_command, resolution['name'])
 
 
-def convert_video_to_hls(video_instance) -> bool:
-    """
-    Convert video to HLS format with multiple resolutions.
-    
-    Processes the video file associated with the given video instance,
-    converting it to HLS format with multiple resolution options.
-    Updates the video instance with processing status and HLS path.
-    
-    Args:
-        video_instance: Video model instance to process
-        
-    Returns:
-        bool: True if conversion successful, False otherwise
-    """
+def prepare_video_conversion(video_instance) -> tuple:
+    """Prepare video for HLS conversion and validate."""
     if not video_instance.video_file:
         logger.error(f"No video file found for video ID {video_instance.id}")
-        return False
+        return None, None, None
     
     video_path = video_instance.video_file.path
-    
     if not validate_video_file(video_path):
-        return False
+        return None, None, None
     
     video_id = video_instance.id
     hls_dir = os.path.join(settings.MEDIA_ROOT, 'hls', str(video_id))
     os.makedirs(hls_dir, exist_ok=True)
     
+    return video_path, video_id, hls_dir
+
+
+def process_all_resolutions(video_path: str, hls_dir: str) -> int:
+    """Process video for all resolutions and return success count."""
+    successful_conversions = 0
+    for resolution in get_resolution_configs():
+        if convert_single_resolution(video_path, resolution, hls_dir):
+            successful_conversions += 1
+    return successful_conversions
+
+
+def finalize_video_conversion(video_instance, video_id: int, success_count: int) -> bool:
+    """Finalize video conversion and update instance."""
+    if success_count > 0:
+        video_instance.hls_processed = True
+        video_instance.hls_path = f'hls/{video_id}/'
+        video_instance.save()
+        logger.info(f"HLS conversion completed for video ID {video_id}")
+        return True
+    else:
+        logger.error(f"All conversions failed for video ID {video_id}")
+        return False
+
+
+def convert_video_to_hls(video_instance) -> bool:
+    """Convert video to HLS format with multiple resolutions."""
+    video_path, video_id, hls_dir = prepare_video_conversion(video_instance)
+    if not video_path:
+        return False
+    
     try:
         logger.info(f"Starting HLS conversion for video ID {video_id}")
-        successful_conversions = 0
-        
-        for resolution in get_resolution_configs():
-            if convert_single_resolution(video_path, resolution, hls_dir):
-                successful_conversions += 1
-        
-        # Mark as processed if at least one resolution was successful
-        if successful_conversions > 0:
-            video_instance.hls_processed = True
-            video_instance.hls_path = f'hls/{video_id}/'
-            video_instance.save()
-            logger.info(f"HLS conversion completed for video ID {video_id}")
-            return True
-        else:
-            logger.error(f"All conversions failed for video ID {video_id}")
-            return False
-            
+        success_count = process_all_resolutions(video_path, hls_dir)
+        return finalize_video_conversion(video_instance, video_id, success_count)
     except Exception as e:
         logger.error(f"Error in HLS conversion for video ID {video_id}: {str(e)}")
         return False
@@ -215,7 +231,6 @@ def get_hls_resolutions(video_instance) -> List[str]:
         for item in os.listdir(hls_dir):
             item_path = os.path.join(hls_dir, item)
             if os.path.isdir(item_path) and item.endswith('p'):
-                # Check if the resolution folder contains the index.m3u8 file
                 if os.path.exists(os.path.join(item_path, 'index.m3u8')):
                     resolutions.append(item)
     
@@ -250,49 +265,53 @@ def cleanup_hls_files(video_instance) -> bool:
     return True
 
 
-def get_video_file_info(video_path: str) -> Dict[str, Any]:
-    """
-    Get basic information about video file using ffprobe.
+def build_ffprobe_command(video_path: str) -> List[str]:
+    """Build FFprobe command for video analysis."""
+    return [
+        'ffprobe', '-v', 'quiet', '-print_format', 'json', 
+        '-show_format', '-show_streams', video_path
+    ]
+
+
+def extract_video_stream(video_metadata: Dict) -> Optional[Dict]:
+    """Extract video stream from metadata."""
+    for stream in video_metadata.get('streams', []):
+        if stream.get('codec_type') == 'video':
+            return stream
+    return None
+
+
+def build_video_info(video_metadata: Dict, video_stream: Optional[Dict]) -> Dict[str, Any]:
+    """Build video information dictionary."""
+    video_info = {
+        'duration': float(video_metadata.get('format', {}).get('duration', 0)),
+        'size': int(video_metadata.get('format', {}).get('size', 0)),
+        'format': video_metadata.get('format', {}).get('format_name', 'unknown'),
+    }
     
-    Args:
-        video_path (str): Path to video file
-        
-    Returns:
-        Dict[str, Any]: Video information including duration, resolution, format
-    """
+    if video_stream:
+        video_info.update({
+            'width': video_stream.get('width', 0),
+            'height': video_stream.get('height', 0),
+            'codec': video_stream.get('codec_name', 'unknown'),
+        })
+    
+    return video_info
+
+
+def get_video_file_info(video_path: str) -> Dict[str, Any]:
+    """Get basic information about video file using ffprobe."""
     try:
-        ffprobe_command = [
-            'ffprobe', '-v', 'quiet', '-print_format', 'json', 
-            '-show_format', '-show_streams', video_path
-        ]
-        ffprobe_result = subprocess.run(ffprobe_command, capture_output=True, text=True)
+        command = build_ffprobe_command(video_path)
+        result = subprocess.run(command, capture_output=True, text=True)
         
-        if ffprobe_result.returncode == 0:
+        if result.returncode == 0:
             import json
-            video_metadata = json.loads(ffprobe_result.stdout)
-            
-            video_stream = None
-            for stream in video_metadata.get('streams', []):
-                if stream.get('codec_type') == 'video':
-                    video_stream = stream
-                    break
-            
-            video_info = {
-                'duration': float(video_metadata.get('format', {}).get('duration', 0)),
-                'size': int(video_metadata.get('format', {}).get('size', 0)),
-                'format': video_metadata.get('format', {}).get('format_name', 'unknown'),
-            }
-            
-            if video_stream:
-                video_info.update({
-                    'width': video_stream.get('width', 0),
-                    'height': video_stream.get('height', 0),
-                    'codec': video_stream.get('codec_name', 'unknown'),
-                })
-            
-            return video_info
+            metadata = json.loads(result.stdout)
+            video_stream = extract_video_stream(metadata)
+            return build_video_info(metadata, video_stream)
         else:
-            logger.error(f"FFprobe error: {ffprobe_result.stderr}")
+            logger.error(f"FFprobe error: {result.stderr}")
             return {}
             
     except Exception as e:
@@ -318,59 +337,58 @@ def get_hls_playlist_url(video_instance, resolution: str) -> Optional[str]:
     return f"{settings.MEDIA_URL}hls/{video_instance.id}/{resolution}/index.m3u8"
 
 
-def generate_video_thumbnail(video_path: str, output_path: str, timestamp: str = "00:00:10") -> bool:
-    """
-    Generate thumbnail image from video at specified timestamp.
+def build_thumbnail_command(video_path: str, output_path: str, timestamp: str) -> List[str]:
+    """Build FFmpeg command for thumbnail generation."""
+    return [
+        'ffmpeg', '-i', video_path, '-ss', timestamp, '-vframes', '1',
+        '-vf', 'scale=320:180', output_path, '-y'
+    ]
+
+
+def execute_thumbnail_generation(command: List[str], output_path: str) -> bool:
+    """Execute thumbnail generation command."""
+    result = subprocess.run(command, capture_output=True, text=True)
     
-    Args:
-        video_path (str): Path to source video file
-        output_path (str): Path for output thumbnail image
-        timestamp (str): Timestamp in format HH:MM:SS
-        
-    Returns:
-        bool: True if thumbnail generation successful, False otherwise
-    """
+    if result.returncode == 0 and os.path.exists(output_path):
+        logger.info(f"Generated thumbnail: {output_path}")
+        return True
+    else:
+        logger.error(f"Failed to generate thumbnail: {result.stderr}")
+        return False
+
+
+def generate_video_thumbnail(video_path: str, output_path: str, timestamp: str = "00:00:10") -> bool:
+    """Generate thumbnail image from video at specified timestamp."""
     try:
-        thumbnail_command = [
-            'ffmpeg', '-i', video_path, '-ss', timestamp, '-vframes', '1',
-            '-vf', 'scale=320:180', output_path, '-y'
-        ]
-        
-        thumbnail_result = subprocess.run(thumbnail_command, capture_output=True, text=True)
-        
-        if thumbnail_result.returncode == 0 and os.path.exists(output_path):
-            logger.info(f"Generated thumbnail: {output_path}")
-            return True
-        else:
-            logger.error(f"Failed to generate thumbnail: {thumbnail_result.stderr}")
-            return False
-            
+        command = build_thumbnail_command(video_path, output_path, timestamp)
+        return execute_thumbnail_generation(command, output_path)
     except Exception as e:
         logger.error(f"Error generating thumbnail: {str(e)}")
         return False
 
 
-def check_conversion_status(video_instance) -> Dict[str, Any]:
-    """
-    Check the status of HLS conversion for a video.
-    
-    Args:
-        video_instance: Video model instance
-        
-    Returns:
-        Dict[str, Any]: Status information including progress and available resolutions
-    """
-    status_info = {
+def create_base_status_info(video_instance) -> Dict[str, Any]:
+    """Create base status information structure."""
+    return {
         'is_processed': video_instance.hls_processed,
         'hls_path': video_instance.hls_path,
         'available_resolutions': [],
         'total_resolutions': len(get_resolution_configs()),
     }
-    
+
+
+def calculate_conversion_progress(status_info: Dict[str, Any], video_instance) -> None:
+    """Calculate and set conversion progress."""
     if video_instance.hls_processed:
         status_info['available_resolutions'] = get_hls_resolutions(video_instance)
-        status_info['progress'] = len(status_info['available_resolutions']) / status_info['total_resolutions'] * 100
+        progress = len(status_info['available_resolutions']) / status_info['total_resolutions'] * 100
+        status_info['progress'] = progress
     else:
         status_info['progress'] = 0
-    
+
+
+def check_conversion_status(video_instance) -> Dict[str, Any]:
+    """Check the status of HLS conversion for a video."""
+    status_info = create_base_status_info(video_instance)
+    calculate_conversion_progress(status_info, video_instance)
     return status_info
