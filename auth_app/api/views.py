@@ -101,18 +101,32 @@ def create_login_response(user):
     }, status=status.HTTP_200_OK)
 
 
-def set_auth_cookies(response, access_token, refresh_token, request):
-    """Set authentication cookies on response."""
-    is_secure = not request.META.get('HTTP_HOST', '').startswith('localhost')
-    
+def get_cookie_security_setting(request):
+    """Determine if cookies should use secure flag."""
+    return not request.META.get('HTTP_HOST', '').startswith('localhost')
+
+
+def set_access_token_cookie_config(response, access_token, is_secure):
+    """Set access token cookie with configuration."""
     response.set_cookie(
         'access_token', str(access_token), max_age=3600,
         httponly=True, secure=is_secure, samesite='Lax'
     )
+
+
+def set_refresh_token_cookie_config(response, refresh_token, is_secure):
+    """Set refresh token cookie with configuration.""" 
     response.set_cookie(
         'refresh_token', str(refresh_token), max_age=604800,
         httponly=True, secure=is_secure, samesite='Lax'
     )
+
+
+def set_auth_cookies(response, access_token, refresh_token, request):
+    """Set authentication cookies on response."""
+    is_secure = get_cookie_security_setting(request)
+    set_access_token_cookie_config(response, access_token, is_secure)
+    set_refresh_token_cookie_config(response, refresh_token, is_secure)
 
 
 @api_view(['POST'])
@@ -153,22 +167,38 @@ def clear_auth_cookies(response: Response) -> None:
     response.delete_cookie('refresh_token')
 
 
-@api_view(['POST'])
-def logout_view(request):
-    """POST /api/logout/ - Logout user and blacklist refresh token."""
-    refresh_token = request.COOKIES.get('refresh_token')
-    
+def get_refresh_token_from_request(request):
+    """Get refresh token from request cookies."""
+    return request.COOKIES.get('refresh_token')
+
+
+def validate_logout_request(request):
+    """Validate logout request and return token or error response."""
+    refresh_token = get_refresh_token_from_request(request)
     if not refresh_token:
-        return Response(
+        return None, Response(
             {'detail': 'Refresh token missing.'}, 
             status=status.HTTP_400_BAD_REQUEST
         )
-    
+    return refresh_token, None
+
+
+def process_logout(refresh_token):
+    """Process logout by blacklisting token and creating response."""
     blacklist_refresh_token(refresh_token)
     response = create_logout_response()
     clear_auth_cookies(response)
-    
     return response
+
+
+@api_view(['POST'])
+def logout_view(request):
+    """POST /api/logout/ - Logout user and blacklist refresh token."""
+    refresh_token, error_response = validate_logout_request(request)
+    if error_response:
+        return error_response
+    
+    return process_logout(refresh_token)
 
 
 def create_refresh_response(access_token):
@@ -191,20 +221,19 @@ def set_access_token_cookie(response, access_token, request):
     )
 
 
-@api_view(['POST'])
-def token_refresh_view(request):
-    """
-    POST /api/token/refresh/
-    Refresh access token using refresh token from cookie.
-    """
+def validate_refresh_token_from_cookies(request):
+    """Validate and return refresh token from cookies."""
     refresh_token = request.COOKIES.get('refresh_token')
-    
     if not refresh_token:
-        return Response(
+        return None, Response(
             {'detail': 'Refresh token missing.'}, 
             status=status.HTTP_400_BAD_REQUEST
         )
-    
+    return refresh_token, None
+
+
+def process_token_refresh(refresh_token, request):
+    """Process token refresh and return response."""
     try:
         refresh = RefreshToken(refresh_token)
         access_token = refresh.access_token
@@ -218,6 +247,19 @@ def token_refresh_view(request):
             {'detail': 'Invalid refresh token.'}, 
             status=status.HTTP_401_UNAUTHORIZED
         )
+
+
+@api_view(['POST'])
+def token_refresh_view(request):
+    """
+    POST /api/token/refresh/
+    Refresh access token using refresh token from cookie.
+    """
+    refresh_token, error_response = validate_refresh_token_from_cookies(request)
+    if error_response:
+        return error_response
+    
+    return process_token_refresh(refresh_token, request)
 
 
 def send_reset_email_if_user_exists(email: str) -> None:
