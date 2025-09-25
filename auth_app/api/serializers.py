@@ -6,7 +6,8 @@ from ..models import CustomUser
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
-    """Serializer for user registration."""
+    """Serializer for user registration.
+    Validates email uniqueness, password strength, and confirmation matching."""
     password = serializers.CharField(write_only=True, validators=[validate_password])
     confirmed_password = serializers.CharField(write_only=True)
 
@@ -32,7 +33,8 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
 
 class UserLoginSerializer(serializers.Serializer):
-    """Serializer for user login."""
+    """Serializer for user login.
+    Authenticates credentials and validates account activation status."""
     email = serializers.EmailField()
     password = serializers.CharField()
 

@@ -4,7 +4,8 @@ import os
 
 
 class Category(models.Model):
-    """Model for video categories."""
+    """Model for video categories.
+    Organizes videos into logical groups for better content management."""
     name = models.CharField(max_length=100, unique=True, verbose_name="Name")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Created at")
     
@@ -18,7 +19,8 @@ class Category(models.Model):
 
 
 class Video(models.Model):
-    """Model for videos with HLS streaming support."""
+    """Model for videos with HLS streaming support.
+    Handles video metadata, file storage, and HLS conversion tracking."""
     title = models.CharField(max_length=200, verbose_name="Title")
     description = models.TextField(verbose_name="Description")
     category = models.ForeignKey(
@@ -60,12 +62,14 @@ class Video(models.Model):
     
     @property
     def thumbnail_url(self):
-        """Return full URL for thumbnail."""
+        """Return full URL for thumbnail.
+        Constructs complete media URL path for frontend display."""
         if self.thumbnail:
             return f"{settings.MEDIA_URL}{self.thumbnail}"
         return None
     
     def get_hls_resolutions(self):
-        """Get available HLS resolutions for this video."""
+        """Get available HLS resolutions for this video.
+        Returns list of processed resolution variants for adaptive streaming."""
         from .utils import get_hls_resolutions
         return get_hls_resolutions(self)

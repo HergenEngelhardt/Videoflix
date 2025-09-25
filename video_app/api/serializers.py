@@ -3,7 +3,8 @@ from ..models import Video, Category
 
 
 class CategorySerializer(serializers.ModelSerializer):
-    """Serializer for Category model."""
+    """Serializer for Category model.
+    Handles category data serialization for API endpoints."""
     
     class Meta:
         model = Category
@@ -12,7 +13,8 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class VideoListSerializer(serializers.ModelSerializer):
-    """Serializer for Video list view."""
+    """Serializer for Video list view.
+    Provides video metadata with category names and thumbnail URLs."""
     category = serializers.CharField(source='category.name', read_only=True)
     thumbnail_url = serializers.SerializerMethodField()
     
