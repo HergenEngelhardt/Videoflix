@@ -21,7 +21,8 @@ from ..utils import send_activation_email, send_password_reset_email
 
 
 def create_user_response(user):
-    """Create response data for user registration."""
+    """Create response data for user registration.
+    Generates JWT tokens and user info for API responses."""
     refresh = RefreshToken.for_user(user)
     return {
         'user': {'id': user.id, 'email': user.email},
@@ -32,7 +33,8 @@ def create_user_response(user):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register_view(request):
-    """POST /api/register/ - Register a new user and send activation email."""
+    """POST /api/register/ - Register a new user and send activation email.
+    Creates inactive user account and queues verification email."""
     serializer = UserRegistrationSerializer(data=request.data)
     if serializer.is_valid():
         user = serializer.save()
@@ -43,7 +45,8 @@ def register_view(request):
 
 
 def decode_user_from_uidb64(uidb64):
-    """Decode user ID from base64 and get user object."""
+    """Decode user ID from base64 and get user object.
+    Safely extracts and validates user from encoded activation tokens."""
     try:
         uid = force_str(urlsafe_base64_decode(uidb64))
         return get_object_or_404(CustomUser, pk=uid)

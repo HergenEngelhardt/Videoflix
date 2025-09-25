@@ -6,6 +6,7 @@ class CustomUser(AbstractUser):
     """
     Custom User Model extending Django's AbstractUser.
     Uses email as unique identifier instead of username.
+    Accounts start inactive and require email verification for activation.
     """
     email = models.EmailField(unique=True, verbose_name="Email Address")
     is_active = models.BooleanField(default=False, verbose_name="Active")

@@ -57,7 +57,8 @@ def validate_video_file(video_path: str) -> bool:
 
 
 def get_basic_ffmpeg_args(video_path: str) -> List[str]:
-    """Get basic FFmpeg arguments."""
+    """Get basic FFmpeg arguments.
+    Sets up input file and baseline encoding settings for H.264/AAC."""
     return ['ffmpeg', '-i', video_path, '-c:v', 'libx264', '-c:a', 'aac']
 
 
@@ -90,7 +91,8 @@ def build_ffmpeg_command(
     output_path: str, 
     res_dir: str
 ) -> List[str]:
-    """Build complete FFmpeg command for HLS conversion."""
+    """Build complete FFmpeg command for HLS conversion.
+    Combines all arguments for resolution-specific adaptive streaming output."""
     command = get_basic_ffmpeg_args(video_path)
     command.extend(get_audio_args())
     command.extend(get_video_args(resolution))
@@ -106,7 +108,8 @@ def setup_resolution_directory(hls_dir: str, resolution_name: str) -> str:
 
 
 def run_ffmpeg_conversion(ffmpeg_command: List[str], resolution_name: str) -> bool:
-    """Execute FFmpeg conversion with error handling."""
+    """Execute FFmpeg conversion with error handling.
+    Runs subprocess with timeout protection and comprehensive error logging."""
     try:
         logger.info(f"Starting conversion for {resolution_name}")
         result = subprocess.run(ffmpeg_command, capture_output=True, text=True, timeout=3600)
@@ -133,7 +136,8 @@ def convert_single_resolution(
     resolution: Dict[str, Union[str, int]], 
     hls_dir: str
 ) -> bool:
-    """Convert video to single HLS resolution."""
+    """Convert video to single HLS resolution.
+    Creates directory structure and processes video for specific quality level."""
     res_dir = setup_resolution_directory(hls_dir, resolution['name'])
     output_path = os.path.join(res_dir, 'index.m3u8')
     ffmpeg_command = build_ffmpeg_command(video_path, resolution, output_path, res_dir)

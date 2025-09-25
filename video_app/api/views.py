@@ -26,14 +26,16 @@ def video_list_view(request):
 
 
 def get_manifest_path(movie_id, resolution):
-    """Get path to HLS manifest file."""
+    """Get path to HLS manifest file.
+    Constructs filesystem path for specific video resolution manifest."""
     return os.path.join(
         settings.MEDIA_ROOT, 'hls', str(movie_id), resolution, 'index.m3u8'
     )
 
 
 def read_manifest_file(manifest_path):
-    """Read and return manifest file content."""
+    """Read and return manifest file content.
+    Safely reads HLS manifest with proper error handling."""
     if not os.path.exists(manifest_path):
         raise Http404("Video or manifest not found")
     
@@ -47,7 +49,8 @@ def read_manifest_file(manifest_path):
 @api_view(['GET'])
 @permission_classes([IsAuthenticatedForVideo])
 def hls_manifest_view(request, movie_id, resolution):
-    """GET /api/video/<movie_id>/<resolution>/index.m3u8 - Serve HLS manifest."""
+    """GET /api/video/<movie_id>/<resolution>/index.m3u8 - Serve HLS manifest.
+    Returns M3U8 playlist file for adaptive streaming playback."""
     video = get_object_or_404(Video, id=movie_id, hls_processed=True)
     manifest_path = get_manifest_path(movie_id, resolution)
     content = read_manifest_file(manifest_path)

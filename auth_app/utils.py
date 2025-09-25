@@ -11,14 +11,16 @@ import django_rq
 
 
 def generate_activation_link(user):
-    """Generate activation link for user."""
+    """Generate activation link for user.
+    Creates secure URL with encoded UID and token for email verification."""
     token = default_token_generator.make_token(user)
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     return f"{settings.FRONTEND_URL}/activate/{uid}/{token}/"
 
 
 def send_activation_email(user):
-    """Send activation email to user."""
+    """Send activation email to user.
+    Queues HTML email with activation link using Django-RQ for async processing."""
     activation_link = generate_activation_link(user)
     
     html_message = render_to_string('emails/activation_email.html', {
@@ -39,14 +41,16 @@ def send_activation_email(user):
 
 
 def generate_reset_link(user):
-    """Generate password reset link for user."""
+    """Generate password reset link for user.
+    Creates secure URL with encoded UID and token for password recovery."""
     token = default_token_generator.make_token(user)
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     return f"{settings.FRONTEND_URL}/password-reset/{uid}/{token}/"
 
 
 def send_password_reset_email(user):
-    """Send password reset email to user."""
+    """Send password reset email to user.
+    Queues HTML email with reset link using Django-RQ for async processing."""
     reset_link = generate_reset_link(user)
     
     html_message = render_to_string('emails/password_reset_email.html', {
