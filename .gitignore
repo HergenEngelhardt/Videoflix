@@ -126,6 +126,7 @@ dmypy.json
 
 # Media files
 media/
+static/
 staticfiles/
 
 # IDE
