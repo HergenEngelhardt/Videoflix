@@ -18,39 +18,31 @@ class Category(models.Model):
         return self.name
 
 
-class Video(models.Model):
-    """Model for videos with HLS streaming support.
-    Handles video metadata, file storage, and HLS conversion tracking."""
+class BaseVideo(models.Model):
+    """Base video model with core metadata."""
     title = models.CharField(max_length=200, verbose_name="Title")
     description = models.TextField(verbose_name="Description")
-    category = models.ForeignKey(
-        Category, 
-        on_delete=models.CASCADE, 
-        related_name="videos",
-        verbose_name="Category"
-    )
-    thumbnail = models.ImageField(
-        upload_to='thumbnails/', 
-        blank=True, 
-        null=True,
-        verbose_name="Thumbnail"
-    )
-    video_file = models.FileField(
-        upload_to='videos/', 
-        blank=True, 
-        null=True,
-        verbose_name="Video File"
-    )
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name="videos", verbose_name="Category")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Created at")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Updated at")
     
+    class Meta:
+        abstract = True
+
+
+class VideoMedia(models.Model):
+    """Video file storage fields."""
+    thumbnail = models.ImageField(upload_to='thumbnails/', blank=True, null=True, verbose_name="Thumbnail")
+    video_file = models.FileField(upload_to='videos/', blank=True, null=True, verbose_name="Video File")
+    
+    class Meta:
+        abstract = True
+
+
+class Video(BaseVideo, VideoMedia):
+    """Model for videos with HLS streaming support."""
     hls_processed = models.BooleanField(default=False, verbose_name="HLS Processed")
-    hls_path = models.CharField(
-        max_length=500, 
-        blank=True, 
-        null=True,
-        verbose_name="HLS Path"
-    )
+    hls_path = models.CharField(max_length=500, blank=True, null=True, verbose_name="HLS Path")
     
     class Meta:
         verbose_name = "Video"
@@ -62,14 +54,12 @@ class Video(models.Model):
     
     @property
     def thumbnail_url(self):
-        """Return full URL for thumbnail.
-        Constructs complete media URL path for frontend display."""
+        """Return full URL for thumbnail."""
         if self.thumbnail:
             return f"{settings.MEDIA_URL}{self.thumbnail}"
         return None
     
     def get_hls_resolutions(self):
-        """Get available HLS resolutions for this video.
-        Returns list of processed resolution variants for adaptive streaming."""
+        """Get available HLS resolutions for this video."""
         from .utils import get_hls_resolutions
         return get_hls_resolutions(self)
