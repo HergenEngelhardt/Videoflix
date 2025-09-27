@@ -406,16 +406,6 @@ The Django Admin Interface is available at `/admin/` and provides:
 - Descriptive variable names
 - No unused imports/variables
 
-### Testing
-```bash
-# Run tests
-python manage.py test
-
-# Coverage report
-coverage run --source='.' manage.py test
-coverage report
-```
-
 ### Debugging
 - Debug mode in settings.py
 - Django Debug Toolbar (optional)
