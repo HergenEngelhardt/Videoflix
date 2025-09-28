@@ -18,26 +18,34 @@ def generate_activation_link(user):
     return f"{settings.FRONTEND_URL}/activate/{uid}/{token}/"
 
 
-def send_activation_email(user):
-    """Send activation email to user.
-    Queues HTML email with activation link using Django-RQ for async processing."""
-    activation_link = generate_activation_link(user)
-    
-    html_message = render_to_string('emails/activation_email.html', {
+def render_activation_email(user, activation_link):
+    """Render activation email HTML template."""
+    return render_to_string('emails/activation_email.html', {
         'activation_link': activation_link,
         'user': user,
     })
-    
+
+
+def queue_activation_email(user_email, html_message):
+    """Queue activation email for sending via Django-RQ."""
     queue = django_rq.get_queue('default')
     queue.enqueue(
         send_mail, 
         'Activate your Videoflix Account', 
         '', 
         settings.DEFAULT_FROM_EMAIL, 
-        [user.email], 
+        [user_email], 
         fail_silently=False,
         html_message=html_message,
     )
+
+
+def send_activation_email(user):
+    """Send activation email to user.
+    Queues HTML email with activation link using Django-RQ for async processing."""
+    activation_link = generate_activation_link(user)
+    html_message = render_activation_email(user, activation_link)
+    queue_activation_email(user.email, html_message)
 
 
 def generate_reset_link(user):
@@ -48,23 +56,31 @@ def generate_reset_link(user):
     return f"{settings.FRONTEND_URL}/password-reset/{uid}/{token}/"
 
 
-def send_password_reset_email(user):
-    """Send password reset email to user.
-    Queues HTML email with reset link using Django-RQ for async processing."""
-    reset_link = generate_reset_link(user)
-    
-    html_message = render_to_string('emails/password_reset_email.html', {
+def render_password_reset_email(user, reset_link):
+    """Render password reset email HTML template."""
+    return render_to_string('emails/password_reset_email.html', {
         'reset_link': reset_link,
         'user': user,
     })
-    
+
+
+def queue_password_reset_email(user_email, html_message):
+    """Queue password reset email for sending via Django-RQ."""
     queue = django_rq.get_queue('default')
     queue.enqueue(
         send_mail, 
         'Password Reset - Videoflix', 
         '',  
         settings.DEFAULT_FROM_EMAIL, 
-        [user.email], 
+        [user_email], 
         fail_silently=False,
         html_message=html_message,
     )
+
+
+def send_password_reset_email(user):
+    """Send password reset email to user.
+    Queues HTML email with reset link using Django-RQ for async processing."""
+    reset_link = generate_reset_link(user)
+    html_message = render_password_reset_email(user, reset_link)
+    queue_password_reset_email(user.email, html_message)

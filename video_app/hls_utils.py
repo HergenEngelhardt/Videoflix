@@ -17,17 +17,25 @@ from .ffmpeg_utils import (
 logger = logging.getLogger(__name__)
 
 
-def prepare_video_conversion(video_instance) -> tuple:
-    """Prepare video for HLS conversion and validate."""
+def validate_video_instance(video_instance) -> tuple:
+    """Validate video instance and return path info."""
     if not video_instance.video_file:
         logger.error(f"No video file found for video ID {video_instance.id}")
-        return None, None, None
+        return None, None
     
     video_path = video_instance.video_file.path
     if not validate_video_file(video_path):
+        return None, None
+    
+    return video_path, video_instance.id
+
+
+def prepare_video_conversion(video_instance) -> tuple:
+    """Prepare video for HLS conversion and validate."""
+    video_path, video_id = validate_video_instance(video_instance)
+    if not video_path:
         return None, None, None
     
-    video_id = video_instance.id
     hls_dir = os.path.join(settings.MEDIA_ROOT, 'hls', str(video_id))
     os.makedirs(hls_dir, exist_ok=True)
     

@@ -232,6 +232,14 @@ def validate_refresh_token_from_cookies(request):
     return refresh_token, None
 
 
+def create_invalid_refresh_token_response():
+    """Create invalid refresh token response."""
+    return Response(
+        {'detail': 'Invalid refresh token.'}, 
+        status=status.HTTP_401_UNAUTHORIZED
+    )
+
+
 def process_token_refresh(refresh_token, request):
     """Process token refresh and return response."""
     try:
@@ -243,10 +251,7 @@ def process_token_refresh(refresh_token, request):
         return response
         
     except TokenError:
-        return Response(
-            {'detail': 'Invalid refresh token.'}, 
-            status=status.HTTP_401_UNAUTHORIZED
-        )
+        return create_invalid_refresh_token_response()
 
 
 @api_view(['POST'])
@@ -302,22 +307,39 @@ def reset_user_password(user, new_password):
     user.save()
 
 
+def create_invalid_reset_link_response():
+    """Create invalid reset link response."""
+    return Response(
+        {'detail': 'Invalid reset link.'}, 
+        status=status.HTTP_400_BAD_REQUEST
+    )
+
+
+def create_invalid_token_response():
+    """Create invalid token response."""
+    return Response(
+        {'detail': 'Invalid or expired token.'}, 
+        status=status.HTTP_400_BAD_REQUEST
+    )
+
+
 def validate_reset_request(uidb64: str, token: str) -> tuple:
     """Validate password reset request parameters."""
     user = decode_user_from_uidb64(uidb64)
     if not user:
-        return None, Response(
-            {'detail': 'Invalid reset link.'}, 
-            status=status.HTTP_400_BAD_REQUEST
-        )
+        return None, create_invalid_reset_link_response()
     
     if not validate_reset_token(user, token):
-        return None, Response(
-            {'detail': 'Invalid or expired token.'}, 
-            status=status.HTTP_400_BAD_REQUEST
-        )
+        return None, create_invalid_token_response()
     
     return user, None
+
+
+def create_password_reset_success_response():
+    """Create password reset success response."""
+    return Response({
+        'detail': 'Your Password has been successfully reset.'
+    }, status=status.HTTP_200_OK)
 
 
 def process_password_reset(request, user) -> Response:
@@ -325,9 +347,7 @@ def process_password_reset(request, user) -> Response:
     serializer = PasswordConfirmSerializer(data=request.data)
     if serializer.is_valid():
         reset_user_password(user, serializer.validated_data['new_password'])
-        return Response({
-            'detail': 'Your Password has been successfully reset.'
-        }, status=status.HTTP_200_OK)
+        return create_password_reset_success_response()
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
