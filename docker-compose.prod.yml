@@ -5,9 +5,9 @@ services:
     image: postgres:15-alpine
     restart: always
     environment:
-      POSTGRES_DB: ${DATABASE_NAME:-videoflix_db}
-      POSTGRES_USER: ${DATABASE_USER:-postgres}
-      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-postgres}
+      POSTGRES_DB: ${DATABASE_NAME:-your_database_name}
+      POSTGRES_USER: ${DATABASE_USER:-your_database_user}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-your_database_password}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -39,9 +39,9 @@ services:
     environment:
       - DEBUG=False
       - SECRET_KEY=${SECRET_KEY}
-      - DATABASE_NAME=${DATABASE_NAME:-videoflix_db}
-      - DATABASE_USER=${DATABASE_USER:-postgres}
-      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-postgres}
+      - DATABASE_NAME=${DATABASE_NAME:-your_database_name}
+      - DATABASE_USER=${DATABASE_USER:-your_database_user}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-your_database_password}
       - DATABASE_HOST=db
       - DATABASE_PORT=5432
       - REDIS_HOST=redis
@@ -74,9 +74,9 @@ services:
     environment:
       - DEBUG=False
       - SECRET_KEY=${SECRET_KEY}
-      - DATABASE_NAME=${DATABASE_NAME:-videoflix_db}
-      - DATABASE_USER=${DATABASE_USER:-postgres}
-      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-postgres}
+      - DATABASE_NAME=${DATABASE_NAME:-your_database_name}
+      - DATABASE_USER=${DATABASE_USER:-your_database_user}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-your_database_password}
       - DATABASE_HOST=db
       - DATABASE_PORT=5432
       - REDIS_HOST=redis
