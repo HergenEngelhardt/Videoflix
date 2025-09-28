@@ -20,22 +20,29 @@ class JWTCookieAuthentication(JWTAuthentication):
         
         return (user, validated_token)
     
-    def get_validated_token(self, raw_token):
-        """
-        Validates an encoded JSON web token and returns a validated token
-        wrapper object.
-        """
+    def collect_token_validation_messages(self, raw_token):
+        """Collect validation messages from all token types."""
         messages = []
         for AuthToken in self.get_token_types():
             try:
-                return AuthToken(raw_token)
+                return AuthToken(raw_token), None
             except TokenError as e:
                 messages.append({
                     'token_class': AuthToken.__name__,
                     'token_type': AuthToken.token_type,
                     'message': e.args[0],
                 })
+        return None, messages
 
+    def get_validated_token(self, raw_token):
+        """
+        Validates an encoded JSON web token and returns a validated token
+        wrapper object.
+        """
+        token, messages = self.collect_token_validation_messages(raw_token)
+        if token:
+            return token
+        
         raise InvalidToken({
             'detail': 'Given token not valid for any token type',
             'messages': messages,

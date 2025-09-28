@@ -38,18 +38,22 @@ class UserLoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField()
 
+    def authenticate_user_credentials(self, email, password):
+        """Authenticate user with email and password."""
+        user = authenticate(username=email, password=password)
+        if not user:
+            raise serializers.ValidationError('Invalid credentials.')
+        if not user.is_active:
+            raise serializers.ValidationError('Account is not activated.')
+        return user
+
     def validate(self, attrs):
         """Validate user credentials."""
         email = attrs.get('email')
         password = attrs.get('password')
 
         if email and password:
-            user = authenticate(username=email, password=password)
-            if not user:
-                raise serializers.ValidationError('Invalid credentials.')
-            if not user.is_active:
-                raise serializers.ValidationError('Account is not activated.')
-            attrs['user'] = user
+            attrs['user'] = self.authenticate_user_credentials(email, password)
         else:
             raise serializers.ValidationError('Email and password required.')
         

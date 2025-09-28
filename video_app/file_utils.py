@@ -31,17 +31,8 @@ def scan_resolution_directories(hls_dir):
 
 
 def get_hls_resolutions(video_instance) -> List[str]:
-    """
-    Get available HLS resolutions for a video instance.
-    
-    Scans the HLS directory for the video to find available resolution folders.
-    
-    Args:
-        video_instance: Video model instance to check
-        
-    Returns:
-        List[str]: Sorted list of available resolutions (e.g., ['120p', '360p', '480p', '720p', '1080p'])
-    """
+    """Get available HLS resolutions for a video instance.
+    Scans HLS directory for available resolution folders."""
     if not check_hls_prerequisites(video_instance):
         return []
     
@@ -70,17 +61,8 @@ def remove_hls_directory(hls_dir, video_id):
 
 
 def cleanup_hls_files(video_instance) -> bool:
-    """
-    Clean up HLS files when video is deleted.
-    
-    Removes all HLS-related files and directories for the given video instance.
-    
-    Args:
-        video_instance: Video model instance whose HLS files should be cleaned
-        
-    Returns:
-        bool: True if cleanup successful or no files to clean, False on error
-    """
+    """Clean up HLS files when video is deleted.
+    Removes all HLS-related files and directories for the video instance."""
     hls_dir = get_hls_directory_path(video_instance)
     if not hls_dir:
         return True
@@ -103,16 +85,8 @@ def build_hls_playlist_url(video_instance, resolution):
 
 
 def get_hls_playlist_url(video_instance, resolution: str) -> Optional[str]:
-    """
-    Get the HLS playlist URL for a specific resolution.
-    
-    Args:
-        video_instance: Video model instance
-        resolution (str): Requested resolution (e.g., '720p')
-        
-    Returns:
-        Optional[str]: HLS playlist URL if available, None otherwise
-    """
+    """Get the HLS playlist URL for a specific resolution.
+    Returns URL if resolution is available, None otherwise."""
     if not check_resolution_availability(video_instance, resolution):
         return None
         

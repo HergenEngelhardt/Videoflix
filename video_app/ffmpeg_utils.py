@@ -14,16 +14,8 @@ logger = logging.getLogger(__name__)
 
 
 def get_resolution_configs() -> List[Dict[str, Union[str, int]]]:
-    """
-    Get HLS resolution configurations for video conversion.
-    
-    Returns:
-        List[Dict]: List of resolution configurations containing:
-            - name (str): Resolution name (e.g., '120p', '360p', '480p', '720p', '1080p')
-            - width (int): Video width in pixels
-            - height (int): Video height in pixels
-            - bitrate (str): Target bitrate (e.g., '1000k')
-    """
+    """Get HLS resolution configurations for video conversion.
+    Returns list of resolution configs with name, dimensions, and bitrate."""
     return [
         {'name': '120p', 'width': 214, 'height': 120, 'bitrate': '300k'},
         {'name': '360p', 'width': 640, 'height': 360, 'bitrate': '800k'},
@@ -33,25 +25,26 @@ def get_resolution_configs() -> List[Dict[str, Union[str, int]]]:
     ]
 
 
-def validate_video_file(video_path: str) -> bool:
-    """
-    Validate if video file exists and is accessible.
-    
-    Args:
-        video_path (str): Path to video file
-        
-    Returns:
-        bool: True if file is valid, False otherwise
-    """
+def check_video_file_exists(video_path: str) -> bool:
+    """Check if video file exists."""
     if not os.path.exists(video_path):
         logger.error(f"Video file not found: {video_path}")
         return False
-        
+    return True
+
+
+def check_video_file_readable(video_path: str) -> bool:
+    """Check if video file is readable."""
     if not os.access(video_path, os.R_OK):
         logger.error(f"Video file not readable: {video_path}")
         return False
-        
     return True
+
+
+def validate_video_file(video_path: str) -> bool:
+    """Validate if video file exists and is accessible."""
+    return (check_video_file_exists(video_path) and 
+            check_video_file_readable(video_path))
 
 
 def get_basic_ffmpeg_args(video_path: str) -> List[str]:
@@ -158,21 +151,31 @@ def extract_video_stream(video_metadata: Dict) -> Optional[Dict]:
     return None
 
 
+def extract_format_info(video_metadata: Dict) -> Dict[str, Any]:
+    """Extract format information from video metadata."""
+    format_data = video_metadata.get('format', {})
+    return {
+        'duration': float(format_data.get('duration', 0)),
+        'size': int(format_data.get('size', 0)),
+        'format': format_data.get('format_name', 'unknown'),
+    }
+
+
+def extract_stream_info(video_stream: Optional[Dict]) -> Dict[str, Any]:
+    """Extract stream information from video stream."""
+    if not video_stream:
+        return {}
+    return {
+        'width': video_stream.get('width', 0),
+        'height': video_stream.get('height', 0),
+        'codec': video_stream.get('codec_name', 'unknown'),
+    }
+
+
 def build_video_info(video_metadata: Dict, video_stream: Optional[Dict]) -> Dict[str, Any]:
     """Build video information dictionary."""
-    video_info = {
-        'duration': float(video_metadata.get('format', {}).get('duration', 0)),
-        'size': int(video_metadata.get('format', {}).get('size', 0)),
-        'format': video_metadata.get('format', {}).get('format_name', 'unknown'),
-    }
-    
-    if video_stream:
-        video_info.update({
-            'width': video_stream.get('width', 0),
-            'height': video_stream.get('height', 0),
-            'codec': video_stream.get('codec_name', 'unknown'),
-        })
-    
+    video_info = extract_format_info(video_metadata)
+    video_info.update(extract_stream_info(video_stream))
     return video_info
 
 
