@@ -18,7 +18,8 @@ logger = logging.getLogger(__name__)
 
 
 def validate_video_instance(video_instance) -> tuple:
-    """Validate video instance and return path info."""
+    """Validate video instance and return path info.
+    Checks file existence and accessibility before HLS processing."""
     if not video_instance.video_file:
         logger.error(f"No video file found for video ID {video_instance.id}")
         return None, None
@@ -31,7 +32,8 @@ def validate_video_instance(video_instance) -> tuple:
 
 
 def prepare_video_conversion(video_instance) -> tuple:
-    """Prepare video for HLS conversion and validate."""
+    """Prepare video for HLS conversion and validate.
+    Creates HLS directory structure and validates video file access."""
     video_path, video_id = validate_video_instance(video_instance)
     if not video_path:
         return None, None, None
@@ -43,7 +45,8 @@ def prepare_video_conversion(video_instance) -> tuple:
 
 
 def process_all_resolutions(video_path: str, hls_dir: str) -> int:
-    """Process video for all resolutions and return success count."""
+    """Process video for all resolutions and return success count.
+    Converts video to multiple HLS qualities (120p to 1080p)."""
     successful_conversions = 0
     for resolution in get_resolution_configs():
         if convert_single_resolution(video_path, resolution, hls_dir):
