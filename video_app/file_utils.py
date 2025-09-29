@@ -14,12 +14,14 @@ logger = logging.getLogger(__name__)
 
 
 def check_hls_prerequisites(video_instance):
-    """Check if video instance has HLS prerequisites."""
+    """Check if video instance has HLS prerequisites.
+    Verifies video has been processed and HLS path exists."""
     return video_instance.hls_processed and video_instance.hls_path
 
 
 def scan_resolution_directories(hls_dir):
-    """Scan HLS directory for available resolution folders."""
+    """Scan HLS directory for available resolution folders.
+    Checks for valid resolution directories containing m3u8 playlists."""
     resolutions = []
     if os.path.exists(hls_dir):
         for item in os.listdir(hls_dir):
@@ -43,14 +45,16 @@ def get_hls_resolutions(video_instance) -> List[str]:
 
 
 def get_hls_directory_path(video_instance):
-    """Get HLS directory path for video instance."""
+    """Get HLS directory path for video instance.
+    Constructs absolute filesystem path to video's HLS directory."""
     if not video_instance.hls_path:
         return None
     return os.path.join(settings.MEDIA_ROOT, video_instance.hls_path)
 
 
 def remove_hls_directory(hls_dir, video_id):
-    """Remove HLS directory and log result."""
+    """Remove HLS directory and log result.
+    Safely deletes entire HLS directory tree with error handling."""
     try:
         shutil.rmtree(hls_dir)
         logger.info(f"Cleaned up HLS files for video ID {video_id}")
@@ -74,13 +78,15 @@ def cleanup_hls_files(video_instance) -> bool:
 
 
 def check_resolution_availability(video_instance, resolution):
-    """Check if resolution is available for video."""
+    """Check if resolution is available for video.
+    Validates that specific resolution quality exists and is playable."""
     available_resolutions = get_hls_resolutions(video_instance)
     return resolution in available_resolutions
 
 
 def build_hls_playlist_url(video_instance, resolution):
-    """Build HLS playlist URL for video and resolution."""
+    """Build HLS playlist URL for video and resolution.
+    Constructs complete media URL for HLS streaming endpoint."""
     return f"{settings.MEDIA_URL}hls/{video_instance.id}/{resolution}/index.m3u8"
 
 
