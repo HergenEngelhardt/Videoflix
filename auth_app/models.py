@@ -21,4 +21,5 @@ class CustomUser(AbstractUser):
         ordering = ['-date_joined']
     
     def __str__(self):
+        """String representation of CustomUser instance."""
         return self.email
