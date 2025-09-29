@@ -15,6 +15,7 @@ class Category(models.Model):
         ordering = ['name']
     
     def __str__(self):
+        """String representation of Category instance."""
         return self.name
 
 
