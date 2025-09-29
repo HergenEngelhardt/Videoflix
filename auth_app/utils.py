@@ -12,14 +12,16 @@ import django_rq
 
 def generate_activation_link(user):
     """Generate activation link for user.
-    Creates secure URL with encoded UID and token for email verification."""
+    Creates secure URL with encoded UID and token for email verification.
+    Returns complete frontend URL for account activation process."""
     token = default_token_generator.make_token(user)
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     return f"{settings.FRONTEND_URL}/activate/{uid}/{token}/"
 
 
 def render_activation_email(user, activation_link):
-    """Render activation email HTML template."""
+    """Render activation email HTML template.
+    Creates formatted HTML email content with activation link."""
     return render_to_string('emails/activation_email.html', {
         'activation_link': activation_link,
         'user': user,
@@ -27,7 +29,8 @@ def render_activation_email(user, activation_link):
 
 
 def queue_activation_email(user_email, html_message):
-    """Queue activation email for sending via Django-RQ."""
+    """Queue activation email for sending via Django-RQ.
+    Adds email task to Redis queue for asynchronous delivery."""
     queue = django_rq.get_queue('default')
     queue.enqueue(
         send_mail, 
@@ -50,7 +53,8 @@ def send_activation_email(user):
 
 def generate_reset_link(user):
     """Generate password reset link for user.
-    Creates secure URL with encoded UID and token for password recovery."""
+    Creates secure URL with encoded UID and token for password recovery.
+    Returns complete frontend URL for password reset process."""
     token = default_token_generator.make_token(user)
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     return f"{settings.FRONTEND_URL}/password-reset/{uid}/{token}/"
