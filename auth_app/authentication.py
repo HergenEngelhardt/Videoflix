@@ -10,6 +10,7 @@ class JWTCookieAuthentication(JWTAuthentication):
     """
     
     def authenticate(self, request):
+        """Authenticate user from HTTP-only cookie token."""
         raw_token = request.COOKIES.get('access_token')
         
         if raw_token is None:
