@@ -50,16 +50,20 @@ class Video(BaseVideo, VideoMedia):
         ordering = ['-created_at']
     
     def __str__(self):
+        """String representation of Video instance.
+        Returns title for display in admin interface and debugging."""
         return self.title
     
     @property
     def thumbnail_url(self):
-        """Return full URL for thumbnail."""
+        """Return full URL for thumbnail.
+        Constructs complete media URL for video thumbnail image."""
         if self.thumbnail:
             return f"{settings.MEDIA_URL}{self.thumbnail}"
         return None
     
     def get_hls_resolutions(self):
-        """Get available HLS resolutions for this video."""
+        """Get available HLS resolutions for this video.
+        Returns list of processed resolution strings (e.g., '720p', '1080p')."""
         from .utils import get_hls_resolutions
         return get_hls_resolutions(self)
