@@ -55,7 +55,8 @@ def process_all_resolutions(video_path: str, hls_dir: str) -> int:
 
 
 def finalize_video_conversion(video_instance, video_id: int, success_count: int) -> bool:
-    """Finalize video conversion and update instance."""
+    """Finalize video conversion and update instance.
+    Updates database status and saves HLS path if conversions succeeded."""
     if success_count > 0:
         video_instance.hls_processed = True
         video_instance.hls_path = f'hls/{video_id}/'
@@ -68,7 +69,8 @@ def finalize_video_conversion(video_instance, video_id: int, success_count: int)
 
 
 def convert_video_to_hls(video_instance) -> bool:
-    """Convert video to HLS format with multiple resolutions."""
+    """Convert video to HLS format with multiple resolutions.
+    Main conversion pipeline orchestrating validation, processing, and finalization."""
     video_path, video_id, hls_dir = prepare_video_conversion(video_instance)
     if not video_path:
         return False
@@ -98,7 +100,8 @@ def queue_video_conversion(video_instance) -> None:
 
 
 def create_base_status_info(video_instance) -> Dict[str, Any]:
-    """Create base status information structure."""
+    """Create base status information structure.
+    Provides foundation data for HLS conversion status tracking."""
     return {
         'is_processed': video_instance.hls_processed,
         'hls_path': video_instance.hls_path,
@@ -108,7 +111,8 @@ def create_base_status_info(video_instance) -> Dict[str, Any]:
 
 
 def calculate_conversion_progress(status_info: Dict[str, Any], video_instance) -> None:
-    """Calculate and set conversion progress."""
+    """Calculate and set conversion progress.
+    Determines percentage completion based on successfully converted resolutions."""
     from .file_utils import get_hls_resolutions  
     
     if video_instance.hls_processed:
@@ -120,7 +124,8 @@ def calculate_conversion_progress(status_info: Dict[str, Any], video_instance) -
 
 
 def check_conversion_status(video_instance) -> Dict[str, Any]:
-    """Check the status of HLS conversion for a video."""
+    """Check the status of HLS conversion for a video.
+    Returns comprehensive status including progress and available resolutions."""
     status_info = create_base_status_info(video_instance)
     calculate_conversion_progress(status_info, video_instance)
     return status_info
