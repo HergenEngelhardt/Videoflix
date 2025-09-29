@@ -27,7 +27,8 @@ def video_list_view(request):
 
 def get_manifest_path(movie_id, resolution):
     """Get path to HLS manifest file.
-    Constructs filesystem path for specific video resolution manifest."""
+    Constructs filesystem path for specific video resolution manifest.
+    Returns absolute path to m3u8 playlist file for streaming."""
     return os.path.join(
         settings.MEDIA_ROOT, 'hls', str(movie_id), resolution, 'index.m3u8'
     )
@@ -35,7 +36,8 @@ def get_manifest_path(movie_id, resolution):
 
 def read_manifest_file(manifest_path):
     """Read and return manifest file content.
-    Safely reads HLS manifest with proper error handling."""
+    Safely reads HLS manifest with proper error handling.
+    Returns m3u8 playlist content as string for HTTP response."""
     if not os.path.exists(manifest_path):
         raise Http404("Video or manifest not found")
     
@@ -62,14 +64,16 @@ def hls_manifest_view(request, movie_id, resolution):
 
 
 def get_segment_path(movie_id, resolution, segment):
-    """Get path to HLS segment file."""
+    """Get path to HLS segment file.
+    Constructs filesystem path to individual video segment (.ts file)."""
     return os.path.join(
         settings.MEDIA_ROOT, 'hls', str(movie_id), resolution, segment
     )
 
 
 def read_segment_file(segment_path):
-    """Read and return segment file content."""
+    """Read and return segment file content.
+    Safely reads binary video segment with error handling."""
     if not os.path.exists(segment_path):
         raise Http404("Video or segment not found")
     
