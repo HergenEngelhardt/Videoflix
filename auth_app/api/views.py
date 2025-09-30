@@ -46,7 +46,8 @@ def register_view(request):
 
 def decode_user_from_uidb64(uidb64):
     """Decode user ID from base64 and get user object.
-    Safely extracts and validates user from encoded activation tokens."""
+    Safely extracts and validates user from encoded activation tokens.
+    Protects against timing attacks and invalid token formats."""
     try:
         uid = force_str(urlsafe_base64_decode(uidb64))
         return get_object_or_404(CustomUser, pk=uid)
@@ -123,7 +124,8 @@ def set_refresh_token_cookie_config(response, refresh_token, is_secure):
 
 
 def set_auth_cookies(response, access_token, refresh_token, request):
-    """Set authentication cookies on response."""
+    """Set authentication cookies on response.
+    Configures secure HTTP-only cookies with appropriate lifetime settings."""
     is_secure = get_cookie_security_setting(request)
     set_access_token_cookie_config(response, access_token, is_secure)
     set_refresh_token_cookie_config(response, refresh_token, is_secure)
