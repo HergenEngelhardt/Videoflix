@@ -65,6 +65,7 @@ class Video(BaseVideo, VideoMedia):
     
     def get_hls_resolutions(self):
         """Get available HLS resolutions for this video.
-        Returns list of processed resolution strings (e.g., '720p', '1080p')."""
+        Returns list of processed resolution strings (e.g., '720p', '1080p').
+        Used for determining which quality options are available to clients."""
         from .utils import get_hls_resolutions
         return get_hls_resolutions(self)

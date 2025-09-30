@@ -65,7 +65,8 @@ def hls_manifest_view(request, movie_id, resolution):
 
 def get_segment_path(movie_id, resolution, segment):
     """Get path to HLS segment file.
-    Constructs filesystem path to individual video segment (.ts file)."""
+    Constructs filesystem path to individual video segment (.ts file).
+    Essential for serving chunked video content during streaming playback."""
     return os.path.join(
         settings.MEDIA_ROOT, 'hls', str(movie_id), resolution, segment
     )
@@ -73,7 +74,8 @@ def get_segment_path(movie_id, resolution, segment):
 
 def read_segment_file(segment_path):
     """Read and return segment file content.
-    Safely reads binary video segment with error handling."""
+    Safely reads binary video segment with error handling.
+    Optimized for streaming performance with minimal memory usage."""
     if not os.path.exists(segment_path):
         raise Http404("Video or segment not found")
     
