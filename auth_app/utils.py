@@ -30,7 +30,8 @@ def render_activation_email(user, activation_link):
 
 def queue_activation_email(user_email, html_message):
     """Queue activation email for sending via Django-RQ.
-    Adds email task to Redis queue for asynchronous delivery."""
+    Adds email task to Redis queue for asynchronous delivery.
+    Improves response times by avoiding blocking email operations."""
     queue = django_rq.get_queue('default')
     queue.enqueue(
         send_mail, 
