@@ -132,6 +132,25 @@ db.sqlite3
 logs/
 *.log
 django.log
+error.log
+access.log
+celery.log
+
+# Django specific
+local_settings.py
+settings_local.py
+settings_production.py
+*_local.py
+celerybeat-schedule
+celerybeat.pid
+
+# Redis dumps
+dump.rdb
+*.rdb
+
+# Docker volumes & data
+volumes/
+data/
 
 # Security & Secret files
 secrets/
@@ -139,11 +158,48 @@ secrets/
 *.pem
 *.p12
 *.pfx
+*.crt
+*.cer
+*.jks
+*.keystore
+config.json
+secret.json
+credentials.json
+auth.json
+
+# AWS/Cloud credentials
+.aws/
+.credentials
+.ssh/
+id_rsa*
+id_ed25519*
+*.pub
+
+# API Keys & Tokens
+*.token
+.api_key
+.secret
+oauth.json
+jwt.key
 
 # Backup files
 *.bak
 *.backup
 *.orig
+*.dump
+*.sql
+
+# Production files
+nginx.conf.local
+uwsgi.ini.local
+gunicorn.conf.py.local
+supervisord.conf.local
+
+# Monitoring & Analytics
+*.pid
+*.sock
+newrelic.ini
+.sentry-dsn
 
 # IDE
 .vscode/
