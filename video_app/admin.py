@@ -18,7 +18,7 @@ class VideoAdmin(admin.ModelAdmin):
     search_fields = ('title', 'description')
     ordering = ('-created_at',)
     readonly_fields = ('created_at', 'updated_at')
-    
+
     fieldsets = (
         ('Basic Information', {
             'fields': ('title', 'description', 'category')

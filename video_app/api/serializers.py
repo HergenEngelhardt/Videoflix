@@ -5,7 +5,7 @@ from ..models import Video, Category
 class CategorySerializer(serializers.ModelSerializer):
     """Serializer for Category model.
     Handles category data serialization for API endpoints."""
-    
+
     class Meta:
         model = Category
         fields = ('id', 'name', 'created_at')
@@ -17,19 +17,19 @@ class VideoListSerializer(serializers.ModelSerializer):
     Provides video metadata with category names and thumbnail URLs."""
     category = serializers.CharField(source='category.name', read_only=True)
     thumbnail_url = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = Video
         fields = (
-            'id', 
+            'id',
             'created_at',
-            'title', 
-            'description', 
+            'title',
+            'description',
             'thumbnail_url',
             'category'
         )
         read_only_fields = ('id', 'created_at')
-    
+
     def get_thumbnail_url(self, obj):
         """Get full URL for thumbnail."""
         if obj.thumbnail:
@@ -44,7 +44,7 @@ class VideoDetailSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     thumbnail_url = serializers.SerializerMethodField()
     available_resolutions = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = Video
         fields = (
@@ -58,7 +58,7 @@ class VideoDetailSerializer(serializers.ModelSerializer):
             'updated_at'
         )
         read_only_fields = ('id', 'created_at', 'updated_at')
-    
+
     def get_thumbnail_url(self, obj):
         """Get full URL for thumbnail."""
         if obj.thumbnail:
@@ -66,7 +66,7 @@ class VideoDetailSerializer(serializers.ModelSerializer):
             if request:
                 return request.build_absolute_uri(obj.thumbnail.url)
         return None
-    
+
     def get_available_resolutions(self, obj):
         """Get available HLS resolutions."""
         return obj.get_hls_resolutions()
