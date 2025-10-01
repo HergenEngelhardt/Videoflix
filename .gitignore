@@ -144,6 +144,10 @@ settings_production.py
 celerybeat-schedule
 celerybeat.pid
 
+# Django migrations (except __init__.py)
+*/migrations/*.py
+!*/migrations/__init__.py
+
 # Redis dumps
 dump.rdb
 *.rdb
