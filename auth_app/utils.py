@@ -1,7 +1,7 @@
 """
 Utility functions for authentication app.
 """
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
@@ -16,7 +16,7 @@ def generate_activation_link(user):
     Returns complete frontend URL for account activation process."""
     token = default_token_generator.make_token(user)
     uid = urlsafe_base64_encode(force_bytes(user.pk))
-    return f"{settings.FRONTEND_URL}/activate/{uid}/{token}/"
+    return f"{settings.FRONTEND_URL}/pages/auth/activate.html?uid={uid}&token={token}"
 
 
 def render_activation_email(user, activation_link):
@@ -28,20 +28,17 @@ def render_activation_email(user, activation_link):
     })
 
 
-def queue_activation_email(user_email, html_message):
-    """Queue activation email for sending via Django-RQ.
-    Adds email task to Redis queue for asynchronous delivery.
-    Improves response times by avoiding blocking email operations."""
-    queue = django_rq.get_queue('default')
-    queue.enqueue(
-        send_mail,
-        'Activate your Videoflix Account',
-        '',
-        settings.DEFAULT_FROM_EMAIL,
-        [user_email],
-        fail_silently=False,
-        html_message=html_message,
+def send_activation_email_task(user_email, html_content, activation_link):
+    """Send activation email directly using EmailMultiAlternatives."""
+    text_content = f"Please activate your Videoflix account: {activation_link}"
+    email = EmailMultiAlternatives(
+        subject='Activate your Videoflix Account',
+        body=text_content,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[user_email],
     )
+    email.attach_alternative(html_content, "text/html")
+    email.send()
 
 
 def send_activation_email(user):
@@ -49,7 +46,10 @@ def send_activation_email(user):
     Queues HTML email with activation link using Django-RQ for async processing."""
     activation_link = generate_activation_link(user)
     html_message = render_activation_email(user, activation_link)
-    queue_activation_email(user.email, html_message)
+    
+    # Queue the email for async sending
+    queue = django_rq.get_queue('default')
+    queue.enqueue(send_activation_email_task, user.email, html_message, activation_link)
 
 
 def generate_reset_link(user):
@@ -58,7 +58,7 @@ def generate_reset_link(user):
     Returns complete frontend URL for password reset process."""
     token = default_token_generator.make_token(user)
     uid = urlsafe_base64_encode(force_bytes(user.pk))
-    return f"{settings.FRONTEND_URL}/password-reset/{uid}/{token}/"
+    return f"{settings.FRONTEND_URL}/pages/auth/confirm_password.html?uid={uid}&token={token}"
 
 
 def render_password_reset_email(user, reset_link):
@@ -69,18 +69,17 @@ def render_password_reset_email(user, reset_link):
     })
 
 
-def queue_password_reset_email(user_email, html_message):
-    """Queue password reset email for sending via Django-RQ."""
-    queue = django_rq.get_queue('default')
-    queue.enqueue(
-        send_mail,
-        'Password Reset - Videoflix',
-        '',
-        settings.DEFAULT_FROM_EMAIL,
-        [user_email],
-        fail_silently=False,
-        html_message=html_message,
+def send_password_reset_email_task(user_email, html_content, reset_link):
+    """Send password reset email directly using EmailMultiAlternatives."""
+    text_content = f"Please reset your Videoflix password: {reset_link}"
+    email = EmailMultiAlternatives(
+        subject='Password Reset - Videoflix',
+        body=text_content,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[user_email],
     )
+    email.attach_alternative(html_content, "text/html")
+    email.send()
 
 
 def send_password_reset_email(user):
@@ -88,4 +87,7 @@ def send_password_reset_email(user):
     Queues HTML email with reset link using Django-RQ for async processing."""
     reset_link = generate_reset_link(user)
     html_message = render_password_reset_email(user, reset_link)
-    queue_password_reset_email(user.email, html_message)
+    
+    # Queue the email for async sending
+    queue = django_rq.get_queue('default')
+    queue.enqueue(send_password_reset_email_task, user.email, html_message, reset_link)
