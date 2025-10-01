@@ -10,9 +10,10 @@ from typing import List, Dict, Any, Optional
 from django.conf import settings
 import django_rq
 from .ffmpeg_utils import (
-    validate_video_file, convert_single_resolution, 
-    get_resolution_configs, get_video_file_info
+    validate_video_file, convert_single_resolution,
+    get_resolution_configs
 )
+
 
 logger = logging.getLogger(__name__)
 
@@ -23,11 +24,11 @@ def validate_video_instance(video_instance) -> tuple:
     if not video_instance.video_file:
         logger.error(f"No video file found for video ID {video_instance.id}")
         return None, None
-    
+
     video_path = video_instance.video_file.path
     if not validate_video_file(video_path):
         return None, None
-    
+
     return video_path, video_instance.id
 
 
@@ -37,10 +38,10 @@ def prepare_video_conversion(video_instance) -> tuple:
     video_path, video_id = validate_video_instance(video_instance)
     if not video_path:
         return None, None, None
-    
+
     hls_dir = os.path.join(settings.MEDIA_ROOT, 'hls', str(video_id))
     os.makedirs(hls_dir, exist_ok=True)
-    
+
     return video_path, video_id, hls_dir
 
 
@@ -74,7 +75,7 @@ def convert_video_to_hls(video_instance) -> bool:
     video_path, video_id, hls_dir = prepare_video_conversion(video_instance)
     if not video_path:
         return False
-    
+
     try:
         logger.info(f"Starting HLS conversion for video ID {video_id}")
         success_count = process_all_resolutions(video_path, hls_dir)
@@ -87,7 +88,7 @@ def convert_video_to_hls(video_instance) -> bool:
 def queue_video_conversion(video_instance) -> None:
     """
     Queue video for HLS conversion in background using Redis Queue.
-    
+
     Args:
         video_instance: Video model instance to queue for processing
     """
@@ -96,8 +97,8 @@ def queue_video_conversion(video_instance) -> None:
         queue.enqueue(convert_video_to_hls, video_instance)
         logger.info(f"Video ID {video_instance.id} queued for conversion")
     except Exception as e:
+    
         logger.error(f"Failed to queue video ID {video_instance.id}: {str(e)}")
-
 
 def create_base_status_info(video_instance) -> Dict[str, Any]:
     """Create base status information structure.
@@ -113,8 +114,8 @@ def create_base_status_info(video_instance) -> Dict[str, Any]:
 def calculate_conversion_progress(status_info: Dict[str, Any], video_instance) -> None:
     """Calculate and set conversion progress.
     Determines percentage completion based on successfully converted resolutions."""
-    from .file_utils import get_hls_resolutions  
-    
+    from .file_utils import get_hls_resolutions
+
     if video_instance.hls_processed:
         status_info['available_resolutions'] = get_hls_resolutions(video_instance)
         progress = len(status_info['available_resolutions']) / status_info['total_resolutions'] * 100

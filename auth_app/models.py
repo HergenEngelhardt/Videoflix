@@ -12,7 +12,7 @@ class CustomUserManager(BaseUserManager):
         if not email:
             raise ValueError('The Email field must be set')
         email = self.normalize_email(email)
-        extra_fields.setdefault('username', email)  # Set username to email
+        extra_fields.setdefault('username', email)
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
@@ -41,17 +41,17 @@ class CustomUser(AbstractUser):
     email = models.EmailField(unique=True, verbose_name="Email Address")
     is_active = models.BooleanField(default=False, verbose_name="Active")
     date_joined = models.DateTimeField(auto_now_add=True, verbose_name="Date Joined")
-    
+
     objects = CustomUserManager()
-    
+
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
-    
+
     class Meta:
         verbose_name = "User"
         verbose_name_plural = "Users"
         ordering = ['-date_joined']
-    
+
     def __str__(self):
         """String representation of CustomUser instance."""
         return self.email

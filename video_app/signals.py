@@ -20,7 +20,7 @@ def cleanup_video_file(instance):
     if instance.video_file:
         try:
             instance.video_file.delete(save=False)
-        except:
+        except Exception:
             pass
 
 
@@ -30,7 +30,7 @@ def cleanup_thumbnail_file(instance):
     if instance.thumbnail:
         try:
             instance.thumbnail.delete(save=False)
-        except:
+        except Exception:
             pass
 
 
@@ -40,5 +40,5 @@ def delete_video_files(sender, instance, **kwargs):
     Removes original video, thumbnail, and all HLS files from storage."""
     cleanup_video_file(instance)
     cleanup_thumbnail_file(instance)
-    
+
     cleanup_hls_files(instance)

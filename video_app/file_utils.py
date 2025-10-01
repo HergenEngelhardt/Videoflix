@@ -37,10 +37,10 @@ def get_hls_resolutions(video_instance) -> List[str]:
     Scans HLS directory for available resolution folders."""
     if not check_hls_prerequisites(video_instance):
         return []
-    
+
     hls_dir = os.path.join(settings.MEDIA_ROOT, 'hls', str(video_instance.id))
     resolutions = scan_resolution_directories(hls_dir)
-    
+
     return sorted(resolutions, key=lambda x: int(x[:-1]))
 
 
@@ -70,10 +70,10 @@ def cleanup_hls_files(video_instance) -> bool:
     hls_dir = get_hls_directory_path(video_instance)
     if not hls_dir:
         return True
-        
+
     if os.path.exists(hls_dir):
         return remove_hls_directory(hls_dir, video_instance.id)
-    
+
     return True
 
 
@@ -95,5 +95,5 @@ def get_hls_playlist_url(video_instance, resolution: str) -> Optional[str]:
     Returns URL if resolution is available, None otherwise."""
     if not check_resolution_availability(video_instance, resolution):
         return None
-        
+
     return build_hls_playlist_url(video_instance, resolution)

@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
-from django.core.exceptions import ValidationError
 from ..models import CustomUser
 
 
@@ -27,7 +26,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         user = CustomUser.objects.create_user(
             email=validated_data['email'],
             password=validated_data['password'],
-            is_active=False 
+            is_active=False
         )
         return user
 
@@ -56,7 +55,7 @@ class UserLoginSerializer(serializers.Serializer):
             attrs['user'] = self.authenticate_user_credentials(email, password)
         else:
             raise serializers.ValidationError('Email and password required.')
-        
+
         return attrs
 
 

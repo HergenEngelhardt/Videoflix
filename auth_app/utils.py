@@ -34,11 +34,11 @@ def queue_activation_email(user_email, html_message):
     Improves response times by avoiding blocking email operations."""
     queue = django_rq.get_queue('default')
     queue.enqueue(
-        send_mail, 
-        'Activate your Videoflix Account', 
-        '', 
-        settings.DEFAULT_FROM_EMAIL, 
-        [user_email], 
+        send_mail,
+        'Activate your Videoflix Account',
+        '',
+        settings.DEFAULT_FROM_EMAIL,
+        [user_email],
         fail_silently=False,
         html_message=html_message,
     )
@@ -73,11 +73,11 @@ def queue_password_reset_email(user_email, html_message):
     """Queue password reset email for sending via Django-RQ."""
     queue = django_rq.get_queue('default')
     queue.enqueue(
-        send_mail, 
-        'Password Reset - Videoflix', 
-        '',  
-        settings.DEFAULT_FROM_EMAIL, 
-        [user_email], 
+        send_mail,
+        'Password Reset - Videoflix',
+        '',
+        settings.DEFAULT_FROM_EMAIL,
+        [user_email],
         fail_silently=False,
         html_message=html_message,
     )

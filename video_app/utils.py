@@ -1,12 +1,15 @@
 """
-Utility functions for video processing and HLS conversion.
+UThis is the main utils module that imports from specialized sub-modules:
+- ffmpeg_utils: FFmpeg operations and video processing
+- hls_utils: HLS conversion workflows and queue management
+- file_utils: File management and HLS utilitiesty functions for video processing and HLS conversion.
 
 This module provides functions for converting videos to HLS format,
 managing video processing queues, and handling HLS file operations.
 
 This is the main utils module that imports from specialized sub-modules:
 - ffmpeg_utils: FFmpeg operations and video processing
-- hls_utils: HLS conversion workflows and queue management  
+- hls_utils: HLS conversion workflows and queue management
 - file_utils: File management and HLS utilities
 """
 
@@ -58,7 +61,7 @@ from .file_utils import (
 
 __all__ = [
     'get_resolution_configs',
-    'validate_video_file', 
+    'validate_video_file',
     'get_basic_ffmpeg_args',
     'get_audio_args',
     'get_video_args',
@@ -77,7 +80,7 @@ __all__ = [
     'build_thumbnail_command',
     'execute_thumbnail_generation',
     'generate_video_thumbnail',
-    
+
     'prepare_video_conversion',
     'process_all_resolutions',
     'finalize_video_conversion',
@@ -86,7 +89,7 @@ __all__ = [
     'create_base_status_info',
     'calculate_conversion_progress',
     'check_conversion_status',
-    
+
     'check_hls_prerequisites',
     'scan_resolution_directories',
     'get_hls_resolutions',

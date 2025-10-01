@@ -8,7 +8,6 @@ import os
 import subprocess
 import logging
 from typing import List, Dict, Any, Optional, Union
-from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +42,7 @@ def check_video_file_readable(video_path: str) -> bool:
 
 def validate_video_file(video_path: str) -> bool:
     """Validate if video file exists and is accessible."""
-    return (check_video_file_exists(video_path) and 
+    return (check_video_file_exists(video_path) and
             check_video_file_readable(video_path))
 
 
@@ -77,9 +76,9 @@ def get_hls_args(res_dir: str, output_path: str) -> List[str]:
 
 
 def build_ffmpeg_command(
-    video_path: str, 
-    resolution: Dict[str, Union[str, int]], 
-    output_path: str, 
+    video_path: str,
+    resolution: Dict[str, Union[str, int]],
+    output_path: str,
     res_dir: str
 ) -> List[str]:
     """Build complete FFmpeg command for HLS conversion.
@@ -123,8 +122,8 @@ def handle_conversion_result(result, resolution_name: str) -> bool:
 
 
 def convert_single_resolution(
-    video_path: str, 
-    resolution: Dict[str, Union[str, int]], 
+    video_path: str,
+    resolution: Dict[str, Union[str, int]],
     hls_dir: str
 ) -> bool:
     """Convert video to single HLS resolution.
@@ -138,7 +137,7 @@ def convert_single_resolution(
 def build_ffprobe_command(video_path: str) -> List[str]:
     """Build FFprobe command for video analysis."""
     return [
-        'ffprobe', '-v', 'quiet', '-print_format', 'json', 
+        'ffprobe', '-v', 'quiet', '-print_format', 'json',
         '-show_format', '-show_streams', video_path
     ]
 
@@ -218,7 +217,7 @@ def build_thumbnail_command(video_path: str, output_path: str, timestamp: str) -
 def execute_thumbnail_generation(command: List[str], output_path: str) -> bool:
     """Execute thumbnail generation command."""
     result = subprocess.run(command, capture_output=True, text=True)
-    
+
     if result.returncode == 0 and os.path.exists(output_path):
         logger.info(f"Generated thumbnail: {output_path}")
         return True
