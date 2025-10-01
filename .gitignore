@@ -90,6 +90,10 @@ celerybeat.pid
 
 # Environments
 .env
+.env.local
+.env.*.local
+.env.production
+.env.development
 .venv
 env/
 venv/
@@ -119,6 +123,27 @@ dmypy.json
 media/
 static/
 staticfiles/
+
+# Database files
+*.sqlite3
+db.sqlite3
+
+# Logs
+logs/
+*.log
+django.log
+
+# Security & Secret files
+secrets/
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Backup files
+*.bak
+*.backup
+*.orig
 
 # IDE
 .vscode/
