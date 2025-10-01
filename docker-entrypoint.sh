@@ -4,7 +4,7 @@ set -e
 # Function to wait for database
 wait_for_db() {
     echo "Waiting for database..."
-    while ! nc -z $DATABASE_HOST $DATABASE_PORT; do
+    while ! nc -z $DB_HOST $DB_PORT; do
         sleep 1
     done
     echo "Database is ready!"
@@ -20,7 +20,7 @@ wait_for_redis() {
 }
 
 # Wait for dependencies
-if [ "$DATABASE_HOST" ]; then
+if [ "$DB_HOST" ]; then
     wait_for_db
 fi
 
