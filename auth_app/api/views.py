@@ -194,6 +194,7 @@ def process_logout(refresh_token):
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def logout_view(request):
     """POST /api/logout/ - Logout user and blacklist refresh token."""
     refresh_token, error_response = validate_logout_request(request)
@@ -257,6 +258,7 @@ def process_token_refresh(refresh_token, request):
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def token_refresh_view(request):
     """
     POST /api/token/refresh/

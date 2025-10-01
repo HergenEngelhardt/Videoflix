@@ -23,16 +23,16 @@ class JWTCookieAuthentication(JWTAuthentication):
     
     def collect_token_validation_messages(self, raw_token):
         """Collect validation messages from all token types."""
+        from rest_framework_simplejwt.tokens import AccessToken
         messages = []
-        for AuthToken in self.get_token_types():
-            try:
-                return AuthToken(raw_token), None
-            except TokenError as e:
-                messages.append({
-                    'token_class': AuthToken.__name__,
-                    'token_type': AuthToken.token_type,
-                    'message': e.args[0],
-                })
+        try:
+            return AccessToken(raw_token), None
+        except TokenError as e:
+            messages.append({
+                'token_class': AccessToken.__name__,
+                'token_type': AccessToken.token_type,
+                'message': e.args[0],
+            })
         return None, messages
 
     def get_validated_token(self, raw_token):
