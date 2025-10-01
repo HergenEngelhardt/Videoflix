@@ -126,15 +126,7 @@ CACHES = {
     }
 }
 
-RQ_QUEUES = {
-    'default': {
-        'HOST': os.environ.get("REDIS_HOST", "localhost"),
-        'PORT': int(os.environ.get("REDIS_PORT", 6379)),
-        'DB': int(os.environ.get("REDIS_DB", 0)),
-        'DEFAULT_TIMEOUT': 900,
-        'REDIS_CLIENT_KWARGS': {},
-    },
-}
+# RQ_QUEUES configuration moved to Redis & RQ Settings section below
 
 
 # Password validation
@@ -236,16 +228,17 @@ DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USE
 # Redis & RQ Settings
 RQ_QUEUES = {
     'default': {
-        'HOST': os.environ.get("REDIS_HOST", default="redis"),
-        'PORT': int(os.environ.get("REDIS_PORT", default=6379)),
-        'DB': int(os.environ.get("REDIS_DB", default=0)),
-        'PASSWORD': '',
-        'DEFAULT_TIMEOUT': 360,
+        'HOST': os.environ.get("REDIS_HOST", "redis"),  # Default to "redis" for Docker, "localhost" for local
+        'PORT': int(os.environ.get("REDIS_PORT", 6379)),
+        'DB': int(os.environ.get("REDIS_DB", 0)),
+        'PASSWORD': os.environ.get("REDIS_PASSWORD", ''),
+        'DEFAULT_TIMEOUT': 900,  # Increased timeout for video processing
+        'REDIS_CLIENT_KWARGS': {},
     }
 }
 
-# Frontend URL for email links (use first CSRF trusted origin)
-FRONTEND_URL = os.environ.get('CSRF_TRUSTED_ORIGINS', 'http://localhost:3000').split(',')[0]
+# Frontend URL for email links
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:4200')
 
 # Custom User Model
 AUTH_USER_MODEL = 'auth_app.CustomUser'
