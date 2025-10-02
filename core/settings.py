@@ -216,14 +216,21 @@ CORS_ALLOWED_ORIGINS = os.environ.get("CSRF_TRUSTED_ORIGINS", "http://localhost:
 CORS_ALLOW_CREDENTIALS = True
 
 # Email Settings
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = os.environ.get('EMAIL_HOST', default='smtp.example.com')
-EMAIL_PORT = int(os.environ.get('EMAIL_PORT', default=587))
-EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', default='True').lower() == 'true'
-EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', default='False').lower() == 'true'
-EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', default='your_email_user')
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', default='your_email_password')
-DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
+# For development: Use console backend if EMAIL_HOST is not properly configured
+EMAIL_HOST = os.environ.get('EMAIL_HOST', default='')
+if not EMAIL_HOST or EMAIL_HOST in ['smtp.example.com', 'localhost']:
+    # Development: Print emails to console
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+    DEFAULT_FROM_EMAIL = 'noreply@videoflix.local'
+else:
+    # Production: Use SMTP
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_PORT = int(os.environ.get('EMAIL_PORT', default=587))
+    EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', default='True').lower() == 'true'
+    EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', default='False').lower() == 'true'
+    EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', default='')
+    EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', default='')
+    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
 
 # Redis & RQ Settings
 RQ_QUEUES = {
