@@ -1,13 +1,17 @@
 """
 Utility functions for authentication app.
 """
-from django.core.mail import EmailMultiAlternatives
-from django.template.loader import render_to_string
-from django.utils.http import urlsafe_base64_encode
-from django.utils.encoding import force_bytes
+import logging
+
 from django.contrib.auth.tokens import default_token_generator
 from django.conf import settings
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
 import django_rq
+
+logger = logging.getLogger(__name__)
 
 
 def generate_activation_link(user):
@@ -16,7 +20,7 @@ def generate_activation_link(user):
     Returns complete frontend URL for account activation process."""
     token = default_token_generator.make_token(user)
     uid = urlsafe_base64_encode(force_bytes(user.pk))
-    return f"{settings.FRONTEND_URL}/pages/auth/activate.html?uid={uid}&token={token}"
+    return f"{settings.FRONTEND_URL}/frontend/pages/auth/activate.html?uid={uid}&token={token}"
 
 
 def render_activation_email(user, activation_link):
@@ -39,6 +43,18 @@ def send_activation_email_task(user_email, html_content, activation_link):
             to=[user_email],
         )
         email.attach_alternative(html_content, "text/html")
+        
+        # Attach logo as inline image
+        logo_path = settings.BASE_DIR / 'static' / 'emails' / 'img' / 'logo_videoflix.svg'
+        if logo_path.exists():
+            with open(logo_path, 'rb') as logo_file:
+                email.attach('logo_videoflix.svg', logo_file.read(), 'image/svg+xml')
+                email.mixed_subtype = 'related'
+            # Set Content-ID for inline embedding
+            for attachment in email.attachments:
+                if isinstance(attachment, tuple) and attachment[0] == 'logo_videoflix.svg':
+                    email.attachments[-1] = (attachment[0], attachment[1], attachment[2])
+        
         result = email.send()
         print(f"Activation email sent successfully to {user_email}: {result}")
         return result
@@ -47,15 +63,32 @@ def send_activation_email_task(user_email, html_content, activation_link):
         raise
 
 
+def _enqueue_or_send_now(func, *args):
+    """Queue email task or execute immediately when queue is unavailable."""
+    # Prefer synchronous delivery in development when Maildev is enabled to avoid
+    # requiring a background worker for local testing.
+    if getattr(settings, 'USE_MAILDEV', False):
+        logger.debug("Maildev enabled – sending email immediately without queue")
+        return func(*args)
+
+    try:
+        queue = django_rq.get_queue('default')
+        return queue.enqueue(func, *args)
+    except Exception as exc:
+        logger.warning(
+            "Email queue unavailable (%s). Falling back to direct send.", exc,
+            exc_info=True
+        )
+        return func(*args)
+
+
 def send_activation_email(user):
     """Send activation email to user.
     Queues HTML email with activation link using Django-RQ for async processing."""
     activation_link = generate_activation_link(user)
     html_message = render_activation_email(user, activation_link)
-    
-    # Queue the email for async sending
-    queue = django_rq.get_queue('default')
-    queue.enqueue(send_activation_email_task, user.email, html_message, activation_link)
+
+    _enqueue_or_send_now(send_activation_email_task, user.email, html_message, activation_link)
 
 
 def generate_reset_link(user):
@@ -64,7 +97,7 @@ def generate_reset_link(user):
     Returns complete frontend URL for password reset process."""
     token = default_token_generator.make_token(user)
     uid = urlsafe_base64_encode(force_bytes(user.pk))
-    return f"{settings.FRONTEND_URL}/pages/auth/confirm_password.html?uid={uid}&token={token}"
+    return f"{settings.FRONTEND_URL}/frontend/pages/auth/confirm_password.html?uid={uid}&token={token}"
 
 
 def render_password_reset_email(user, reset_link):
@@ -86,6 +119,14 @@ def send_password_reset_email_task(user_email, html_content, reset_link):
             to=[user_email],
         )
         email.attach_alternative(html_content, "text/html")
+        
+        # Attach logo as inline image
+        logo_path = settings.BASE_DIR / 'static' / 'emails' / 'img' / 'logo_videoflix.svg'
+        if logo_path.exists():
+            with open(logo_path, 'rb') as logo_file:
+                email.attach('logo_videoflix.svg', logo_file.read(), 'image/svg+xml')
+                email.mixed_subtype = 'related'
+        
         result = email.send()
         print(f"Password reset email sent successfully to {user_email}: {result}")
         return result
@@ -99,7 +140,5 @@ def send_password_reset_email(user):
     Queues HTML email with reset link using Django-RQ for async processing."""
     reset_link = generate_reset_link(user)
     html_message = render_password_reset_email(user, reset_link)
-    
-    # Queue the email for async sending
-    queue = django_rq.get_queue('default')
-    queue.enqueue(send_password_reset_email_task, user.email, html_message, reset_link)
+
+    _enqueue_or_send_now(send_password_reset_email_task, user.email, html_message, reset_link)

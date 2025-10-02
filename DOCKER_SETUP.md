@@ -77,6 +77,9 @@ docker-compose exec web python manage.py test_emails --email test@example.com --
 # Admin-Interface aufrufen
 # http://localhost:8000/admin/
 # Credentials: siehe .env (DJANGO_SUPERUSER_*)
+
+# Maildev UI öffnen (lokale Mail-Inbox)
+# http://localhost:1080
 ```
 
 ## Service-Architektur
@@ -86,6 +89,7 @@ docker-compose exec web python manage.py test_emails --email test@example.com --
 - **worker**: Redis-Worker für Email/Video-Processing  
 - **db**: PostgreSQL-Datenbank (Port 5432)
 - **redis**: Redis für Queue-Management (Port 6379)
+- **maildev**: Entwicklungs-Mailserver & Inbox (SMTP 1025, Web UI 1080)
 
 ### Worker-Funktionen:
 - ✅ Email-Versand (Aktivierung & Password-Reset)

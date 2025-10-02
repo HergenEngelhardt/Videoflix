@@ -1,5 +1,6 @@
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+from rest_framework.exceptions import AuthenticationFailed
 
 
 class JWTCookieAuthentication(JWTAuthentication):
@@ -14,8 +15,12 @@ class JWTCookieAuthentication(JWTAuthentication):
         if raw_token is None:
             return None
 
-        validated_token = self.get_validated_token(raw_token)
-        user = self.get_user(validated_token)
+        try:
+            validated_token = self.get_validated_token(raw_token)
+            user = self.get_user(validated_token)
+        except (InvalidToken, TokenError, AuthenticationFailed):
+            setattr(request, "jwt_cookie_invalid", True)
+            return None
 
         return (user, validated_token)
 

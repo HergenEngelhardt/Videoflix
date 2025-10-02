@@ -68,6 +68,7 @@ docker-compose exec web bash
 - **API:** http://localhost:8000
 - **Admin:** http://localhost:8000/admin/
 - **RQ Dashboard:** http://localhost:8000/django-rq/
+- **Maildev UI:** http://localhost:1080 (local inbox for activation/reset mails)
 
 6. **Default login:**
 - **Email:** admin@videoflix.com  
@@ -157,6 +158,11 @@ DEFAULT_FROM_EMAIL=your_email@example.com
 EMAIL_USE_TLS=True
 EMAIL_USE_SSL=False
 DEFAULT_FROM_EMAIL=default_from_email
+# Maildev (development mail catcher)
+USE_MAILDEV=True
+MAILDEV_HOST=localhost
+MAILDEV_PORT=1025
+DEFAULT_FROM_EMAIL=noreply@videoflix.local
 ```
 
 **Note:** You can copy and modify the Docker example file for local development:
