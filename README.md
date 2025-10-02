@@ -39,10 +39,13 @@ cd Videoflix
 # Copy template to .env
 cp .env.template .env
 
-# Generate SECRET_KEY
-python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+# Generate SECRET_KEY (Docker-safe, no special characters)
+python -c "import secrets; print(secrets.token_urlsafe(50))"
 
 # Edit .env and replace SECRET_KEY with generated value
+# IMPORTANT: Use the command above (not get_random_secret_key) to avoid
+# special characters ($, ^, %) that Docker interprets as variables!
+# 
 # The template already has working defaults for Docker:
 # - DB_NAME=videoflix_dev
 # - DB_USER=postgres
