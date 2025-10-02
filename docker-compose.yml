@@ -2,7 +2,8 @@ version: '3.8'
 
 services:
   db:
-    image: postgres:15-alpine
+    image: postgres:latest
+    container_name: videoflix_database
     restart: always
     environment:
       POSTGRES_DB: ${DB_NAME:-your_database_name}
@@ -21,7 +22,8 @@ services:
       retries: 5
 
   redis:
-    image: redis:7-alpine
+    image: redis:latest
+    container_name: videoflix_redis
     restart: always
     volumes:
       - redis_data:/data
@@ -47,7 +49,8 @@ services:
   web:
     build: 
       context: .
-      dockerfile: Dockerfile
+      dockerfile: backend.Dockerfile
+    container_name: videoflix_backend
     restart: always
     environment:
       - DEBUG=True
@@ -87,15 +90,16 @@ services:
         condition: service_healthy
     volumes:
       - .:/app
-      - media_data:/app/media
+      - videoflix_media:/app/media
+      - videoflix_static:/app/static
     networks:
       - videoflix_network
-    command: python manage.py runserver 0.0.0.0:8000
 
   worker:
     build: 
       context: .
-      dockerfile: Dockerfile
+      dockerfile: backend.Dockerfile
+    container_name: videoflix_worker
     restart: always
     environment:
       - DEBUG=True
@@ -135,15 +139,16 @@ services:
         condition: service_started
     volumes:
       - .:/app
-      - media_data:/app/media
+      - videoflix_media:/app/media
+      - videoflix_static:/app/static
     networks:
       - videoflix_network
-    command: python manage.py rqworker default
 
 volumes:
   postgres_data:
   redis_data:
-  media_data:
+  videoflix_media:
+  videoflix_static:
 
 networks:
   videoflix_network:

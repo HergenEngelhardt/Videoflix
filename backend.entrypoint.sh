@@ -15,7 +15,9 @@ echo "PostgreSQL is ready - continuing..."
 
 # Original commands (without wait_for_db)
 python manage.py collectstatic --noinput
-python manage.py makemigrations
+
+# IMPORTANT: Only migrate, do NOT create migrations in container!
+# Migrations must be created locally before building the Docker image.
 python manage.py migrate
 
 # Create a superuser using environment variables

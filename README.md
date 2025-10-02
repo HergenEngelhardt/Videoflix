@@ -2,6 +2,17 @@
 
 A Netflix-like video streaming backend developed with Django REST Framework. The system supports user authentication, HLS video streaming in multiple resolutions, and background video processing.
 
+## 📁 Docker Files
+
+- **`backend.Dockerfile`** - Development Dockerfile (Alpine-based, with FFmpeg)
+- **`Dockerfile.prod`** - Production Dockerfile (with Gunicorn and security configuration)
+- **`backend.entrypoint.sh`** - Startup script for both environments
+- **`docker-compose.yml`** - Development setup (with Maildev)
+- **`docker-compose.prod.yml`** - Production setup (with Nginx)
+- **`.dockerignore`** - Files excluded from Docker container
+
+📖 **Complete Docker Documentation:** See [`DOCKER_SETUP.md`](DOCKER_SETUP.md)
+
 ## Features
 
 ### Authentication
@@ -26,7 +37,28 @@ A Netflix-like video streaming backend developed with Django REST Framework. The
 
 ## Quick Start
 
+### ⚠️ IMPORTANT: Create Migrations Before Docker Build!
+
+**Before starting Docker, you must create all migrations locally:**
+
+```powershell
+# Activate virtual environment
+.\.venv\Scripts\Activate.ps1
+
+# Create all migrations
+python manage.py makemigrations
+python manage.py makemigrations auth_app
+python manage.py makemigrations video_app
+
+# Verify
+python manage.py showmigrations
+```
+
+**Reason:** Migrations must exist in the Git repository and are copied into the Docker container. They must NOT be created inside the container.
+
 ### Option 1: Docker Setup (Recommended)
+
+**Detailed Guide:** See [`DOCKER_SETUP.md`](DOCKER_SETUP.md)
 
 1. **Clone repository:**
 ```bash
@@ -34,55 +66,44 @@ git clone https://github.com/HergenEngelhardt/Videoflix.git
 cd Videoflix
 ```
 
-2. **Setup environment (REQUIRED - prevents auth problems!):**
+2. **Check environment file:**
 ```bash
-# Copy template to .env
-cp .env.template .env
-
-# Generate SECRET_KEY (Docker-safe, no special characters)
-python -c "import secrets; print(secrets.token_urlsafe(50))"
-
-# Edit .env and replace SECRET_KEY with generated value
-# IMPORTANT: Use the command above (not get_random_secret_key) to avoid
-# special characters ($, ^, %) that Docker interprets as variables!
-# 
-# The template already has working defaults for Docker:
-# - DB_NAME=videoflix_dev
-# - DB_USER=postgres
-# - DB_PASSWORD=postgres
+# .env file already exists
+# Check the most important settings:
+# - SECRET_KEY
+# - DB_NAME, DB_USER, DB_PASSWORD (must match docker-compose.yml)
+# - DJANGO_SUPERUSER_* (for automatic admin creation)
 ```
 
 3. **Start Docker containers:**
 ```bash
-# Development mode
+# Development Mode
 docker-compose up -d
 
-# Or with build-force
-docker-compose up -d --build
-```
-
-**Note:** The entrypoint script automatically runs `python manage.py migrate` on container startup. If you modify models, rebuild the containers or run migrations manually:
-
-```bash
-# After model changes, create and apply migrations:
-docker-compose exec web python manage.py makemigrations
-docker-compose exec web python manage.py migrate
-
-# Or rebuild containers to apply changes:
-docker-compose down
-docker-compose up -d --build
-```
-
-4. **Check logs:**
-```bash
-# All services
+# Follow logs
 docker-compose logs -f
 
-# Only web service
-docker-compose logs -f web
+# Or with force rebuild
+docker-compose up -d --build
+```
 
-# Only worker service  
-docker-compose logs -f worker
+**Important:** The entrypoint script (`backend.entrypoint.sh`) automatically performs:
+- Waits for PostgreSQL
+- Runs `collectstatic`
+- Runs `migrate` (NOT `makemigrations`!)
+- Creates superuser (from .env variables)
+- Starts RQ Worker in background
+- Starts Gunicorn server
+
+**After model changes:**
+```bash
+# 1. Create migrations LOCALLY
+python manage.py makemigrations
+
+# 2. Rebuild containers
+docker-compose down
+docker-compose build --no-cache
+docker-compose up -d
 ```
 
 4. **Check services:**
@@ -90,40 +111,35 @@ docker-compose logs -f worker
 # Status of all containers
 docker-compose ps
 
-# Enter container
-docker-compose exec web bash
+# Enter container shell
+docker-compose exec web sh
+
+# Logs of individual services
+docker-compose logs -f web
+docker-compose logs -f worker
+docker-compose logs -f db
 ```
 
-5. **Server is available at:** 
-- **API:** http://localhost:8000
-- **Admin:** http://localhost:8000/admin/
-- **RQ Dashboard:** http://localhost:8000/django-rq/
-- **Maildev UI:** http://localhost:1080 (local inbox for activation/reset mails)
+5. **Available services:**
+- **API:** http://localhost:8000/api/
+- **Admin:** http://localhost:8000/admin/ (Login: see .env DJANGO_SUPERUSER_*)
+- **Maildev UI:** http://localhost:1080 (Local inbox for test emails)
+- **PostgreSQL:** localhost:5432
+- **Redis:** localhost:6379
 
-6. **Default login:**
-- **Email:** admin@videoflix.com  
-- **Password:** admin123
+### Option 2: Production Deployment
 
-### Production Setup with Docker
+**See:** [`DOCKER_SETUP.md`](DOCKER_SETUP.md) - Section "Production Deployment"
 
-1. **Configure environment variables:**
 ```bash
-cp .env.docker.example .env.docker
-# Edit .env.docker with your production data
-```
-
-2. **Start production containers:**
-```bash
+# With production compose file
 docker-compose -f docker-compose.prod.yml up -d --build
+
+# Check logs
+docker-compose -f docker-compose.prod.yml logs -f
 ```
 
-3. **Add SSL certificates (optional):**
-```bash
-mkdir ssl
-# Copy your SSL certificates to the ssl/ folder
-```
-
-### Option 2: Local Installation
+### Option 3: Local Installation (without Docker)
 
 1. **Clone repository:**
 ```bash
@@ -353,60 +369,87 @@ GET /api/video/<movie_id>/<resolution>/<segment>/
 Authorization: Bearer <token> (or HTTP-Only Cookie)
 ```
 
-## Docker Commands
+## Docker Commands (Quick Reference)
 
-### Development
-```bash
-# Start containers
+**Complete Reference:** See [`DOCKER_SETUP.md`](DOCKER_SETUP.md)
+
+### Container Management
+```powershell
+# Start
 docker-compose up -d
 
-# Stop containers
+# Stop
 docker-compose down
 
-# Rebuild containers
-docker-compose up -d --build
+# Rebuild (without cache)
+docker-compose build --no-cache
 
-# Container shell
-docker-compose exec web bash
-docker-compose exec worker bash
-
-# Show logs
+# View logs
 docker-compose logs -f web
-docker-compose logs -f worker
 
-# Django commands in container
+# Container status
+docker-compose ps
+
+# Enter container shell
+docker-compose exec web sh
+```
+
+### Django Commands in Container
+```powershell
+# Apply migrations (runs automatically on startup)
 docker-compose exec web python manage.py migrate
+
+# Create superuser (if not created automatically)
 docker-compose exec web python manage.py createsuperuser
-docker-compose exec web python manage.py collectstatic
+
+# Django Shell
+docker-compose exec web python manage.py shell
+
+# Check migration status
+docker-compose exec web python manage.py showmigrations
 ```
 
-### Production
-```bash
-# Start production containers
-docker-compose -f docker-compose.prod.yml up -d --build
-
-# Stop production containers
-docker-compose -f docker-compose.prod.yml down
-
-# Production logs
-docker-compose -f docker-compose.prod.yml logs -f
-```
-
-### Maintenance
-```bash
-# Delete all containers and volumes (Warning!)
+### Troubleshooting
+```powershell
+# Complete reset
 docker-compose down -v
-docker system prune -a
+docker-compose build --no-cache
+docker-compose up -d
 
-# Restart only containers
-docker-compose restart web
+# Restart worker
 docker-compose restart worker
 
-# Container resource usage
-docker stats
+# Database backup
+docker-compose exec db pg_dump -U your_database_user your_database_name > backup.sql
 ```
 
-### Technologies Used
+## 🐛 Common Problems
+
+### "ValueError: dependency on app with no migrations"
+**Solution:** Migrations must be created LOCALLY before Docker build:
+```powershell
+python manage.py makemigrations
+python manage.py makemigrations auth_app
+python manage.py makemigrations video_app
+docker-compose down
+docker-compose build --no-cache
+docker-compose up -d
+```
+
+### Container won't start / Port conflict
+```powershell
+# Check ports
+netstat -ano | findstr :8000
+netstat -ano | findstr :5432
+
+# Kill process
+taskkill /PID <PID> /F
+```
+
+### More Solutions
+See [`DOCKER_SETUP.md`](DOCKER_SETUP.md) - Section "Troubleshooting"
+
+## API Documentation
 - **Backend:** Django 5.2.6, Django REST Framework
 - **Database:** PostgreSQL (production), SQLite (development)
 - **Cache/Queue:** Redis, Django-RQ
@@ -443,58 +486,69 @@ The Django Admin Interface is available at `/admin/` and provides:
 
 ## Development
 
-### Best Practices for Model Changes
+### 🔥 IMPORTANT: Best Practices for Model Changes
 
-**Important:** Whenever you modify Django models (add/remove fields, change relationships, etc.), follow these steps:
+**For Docker Development:**
 
-#### For Local Development:
-```bash
-# 1. Make your model changes in models.py
-# 2. Create migrations
+Migrations are ALWAYS created locally, NEVER inside the container!
+
+```powershell
+# 1. Make model changes in models.py
+
+# 2. Create migrations LOCALLY
 python manage.py makemigrations
+python manage.py makemigrations auth_app
+python manage.py makemigrations video_app
 
-# 3. Review the generated migration file in migrations/ folder
-# 4. Apply migrations
-python manage.py migrate
+# 3. Commit migrations to Git
+git add */migrations/*.py
+git commit -m "Add migrations for model changes"
 
-# 5. Verify everything works
-python manage.py runserver
-```
+# 4. Rebuild containers
+docker-compose down
+docker-compose build --no-cache
+docker-compose up -d
 
-#### For Docker Development:
-```bash
-# 1. Make your model changes in models.py
-# 2. Create migrations in container
-docker-compose exec web python manage.py makemigrations
-
-# 3. Apply migrations
-docker-compose exec web python manage.py migrate
-
-# 4. Restart containers to ensure changes are applied
-docker-compose restart web worker
-```
-
-#### For Team Collaboration:
-```bash
-# After pulling changes from Git that include model changes:
-# 1. Check for new migration files
-git status
-git log --oneline
-
-# 2. Apply any new migrations
-python manage.py migrate          # Local
-# or
-docker-compose exec web python manage.py migrate  # Docker
-
-# 3. If you see migration conflicts, check:
-python manage.py showmigrations
+# 5. Check logs to verify migrations were applied successfully
+docker-compose logs web
 ```
 
 **Why this is important:**
-- ✅ Prevents database schema mismatches
-- ✅ Avoids "relation does not exist" errors
-- ✅ Ensures team members have consistent database schemas
-- ✅ Makes deployment safer and more predictable
+- ✅ Prevents "dependency on app with no migrations" errors
+- ✅ Migration files are copied into Docker image
+- ✅ Team members have consistent database schemas
+- ✅ `.dockerignore` allows migrations folder (but not `__pycache__`)
+
+**For Local Development (without Docker):**
+```bash
+# 1. Model-Änderungen in models.py vornehmen
+# 2. Migrationen erstellen
+python manage.py makemigrations
+
+# 3. Migrationen anwenden
+python manage.py migrate
+
+# 4. Server neu starten
+python manage.py runserver
+```
+
+**Bei Team-Zusammenarbeit:**
+
+**Bei Team-Zusammenarbeit:**
+```bash
+# Nach Git-Pull mit Model-Änderungen:
+# 1. Neue Migrations-Dateien prüfen
+git status
+git log --oneline
+
+# 2. Migrationen anwenden
+python manage.py migrate          # Lokal
+# oder
+docker-compose exec web python manage.py migrate  # Docker (nur bei bestehenden Migrationen)
+
+# 3. Bei Migrations-Konflikten:
+python manage.py showmigrations
+```
 
 ### Code Quality Standards
 - PEP 8 compliant
