@@ -17,14 +17,15 @@ class VideoAdmin(admin.ModelAdmin):
     list_filter = ('category', 'hls_processed', 'created_at')
     search_fields = ('title', 'description')
     ordering = ('-created_at',)
-    readonly_fields = ('created_at', 'updated_at')
+    readonly_fields = ('thumbnail', 'created_at', 'updated_at')
 
     fieldsets = (
         ('Basic Information', {
             'fields': ('title', 'description', 'category')
         }),
         ('Media Files', {
-            'fields': ('thumbnail', 'video_file')
+            'fields': ('video_file', 'thumbnail'),
+            'description': 'Thumbnail wird automatisch aus dem Video generiert.'
         }),
         ('HLS Settings', {
             'fields': ('hls_processed', 'hls_path'),

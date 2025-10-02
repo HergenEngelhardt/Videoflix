@@ -102,6 +102,10 @@ def create_login_response(user):
 
 def get_cookie_security_setting(request):
     """Determine if cookies should use secure flag."""
+    from django.conf import settings
+    # Always False in DEBUG mode for localhost development
+    if settings.DEBUG:
+        return False
     return not request.META.get('HTTP_HOST', '').startswith('localhost')
 
 
@@ -109,7 +113,8 @@ def set_access_token_cookie_config(response, access_token, is_secure):
     """Set access token cookie with configuration."""
     response.set_cookie(
         'access_token', str(access_token), max_age=3600,
-        httponly=True, secure=is_secure, samesite='Lax'
+        httponly=True, secure=is_secure, samesite='Lax',
+        path='/'
     )
 
 
@@ -117,7 +122,8 @@ def set_refresh_token_cookie_config(response, refresh_token, is_secure):
     """Set refresh token cookie with configuration."""
     response.set_cookie(
         'refresh_token', str(refresh_token), max_age=604800,
-        httponly=True, secure=is_secure, samesite='Lax'
+        httponly=True, secure=is_secure, samesite='Lax',
+        path='/'
     )
 
 
