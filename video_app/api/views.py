@@ -93,7 +93,7 @@ def read_manifest_file(manifest_path):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticatedForVideo])
+@permission_classes([IsAuthenticated])
 def hls_manifest_view(request, movie_id, resolution):
     """GET /api/video/<movie_id>/<resolution>/index.m3u8 - Serve HLS manifest.
     Returns M3U8 playlist file for adaptive streaming playback."""
@@ -131,7 +131,7 @@ def read_segment_file(segment_path):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticatedForVideo])
+@permission_classes([IsAuthenticated])
 def hls_segment_view(request, movie_id, resolution, segment):
     """GET /api/video/<movie_id>/<resolution>/<segment>/ - Serve HLS segment."""
     get_object_or_404(Video, id=movie_id, hls_processed=True)
