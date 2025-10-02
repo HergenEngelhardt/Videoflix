@@ -14,6 +14,11 @@ dist/
 build/
 *.whl
 
+# IMPORTANT: Do NOT ignore migrations folders!
+# Migrations must be included in the Docker image
+# !**/migrations/
+# !**/migrations/*.py
+
 # Virtual environments
 .venv/
 venv/
@@ -82,13 +87,10 @@ db.sqlite3
 logs/
 *.log
 
-# Documentation
+# Documentation (keep DOCKER_MIGRATION_FIX.md for reference)
 docs/
-README.md
-*.md
 
 # Docker files (avoid recursion)
-Dockerfile*
 docker-compose*.yml
 .dockerignore
 
@@ -101,6 +103,7 @@ htmlcov/
 # Media files (will be created in container)
 media/
 staticfiles/
+static/CACHE
 
 # Node.js (if any)
 node_modules/
@@ -110,3 +113,6 @@ npm-debug.log*
 .tmp/
 temp/
 *.tmp
+
+# Frontend files (if separate)
+frontend/
