@@ -103,7 +103,6 @@ def create_login_response(user):
 def get_cookie_security_setting(request):
     """Determine if cookies should use secure flag."""
     from django.conf import settings
-    # Always False in DEBUG mode for localhost development
     if settings.DEBUG:
         return False
     return not request.META.get('HTTP_HOST', '').startswith('localhost')
