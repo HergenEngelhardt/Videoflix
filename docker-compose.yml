@@ -1,157 +1,43 @@
 version: '3.8'
 
 services:
+
   db:
     image: postgres:latest
     container_name: videoflix_database
-    restart: always
     environment:
-      POSTGRES_DB: ${DB_NAME:-your_database_name}
-      POSTGRES_USER: ${DB_USER:-your_database_user}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-your_database_password}
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    networks:
-      - videoflix_network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-your_database_user}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   redis:
     image: redis:latest
     container_name: videoflix_redis
-    restart: always
     volumes:
       - redis_data:/data
-    ports:
-      - "6379:6379"
-    networks:
-      - videoflix_network
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-
-  maildev:
-    image: maildev/maildev:latest
-    restart: always
-    ports:
-      - "1025:1025"
-      - "1080:1080"
-    networks:
-      - videoflix_network
 
   web:
-    build: 
+    build:
       context: .
       dockerfile: backend.Dockerfile
+    env_file: .env
     container_name: videoflix_backend
-    restart: always
-    environment:
-      - DEBUG=True
-      - SECRET_KEY=${SECRET_KEY}
-      - DB_NAME=${DB_NAME:-your_database_name}
-      - DB_USER=${DB_USER:-your_database_user}
-      - DB_PASSWORD=${DB_PASSWORD:-your_database_password}
-      - DB_HOST=db
-      - DB_PORT=5432
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_DB=0
-      - REDIS_LOCATION=redis://redis:6379/1
-      - USE_MAILDEV=${USE_MAILDEV:-True}
-      - MAILDEV_HOST=${MAILDEV_HOST:-maildev}
-      - MAILDEV_PORT=${MAILDEV_PORT:-1025}
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
-      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS:-http://localhost:8000,http://127.0.0.1:8000}
-      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:5500,http://127.0.0.1:5500,http://localhost:4200,http://127.0.0.1:4200}
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:4200}
-      - EMAIL_HOST=${EMAIL_HOST}
-      - EMAIL_PORT=${EMAIL_PORT}
-      - EMAIL_USE_TLS=${EMAIL_USE_TLS}
-      - EMAIL_USE_SSL=${EMAIL_USE_SSL}
-      - EMAIL_HOST_USER=${EMAIL_HOST_USER}
-      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
-      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-noreply@videoflix.local}
-      - DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME:-admin}
-      - DJANGO_SUPERUSER_EMAIL=${DJANGO_SUPERUSER_EMAIL:-admin@example.com}
-      - DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD:-adminpassword}
-      - WORKER_MODE=false
+    volumes:
+      - .:/app
+      - videoflix_media:/app/media
+      - videoflix_static:/app/static
     ports:
       - "8000:8000"
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    volumes:
-      - .:/app
-      - videoflix_media:/app/media
-      - videoflix_static:/app/static
-    networks:
-      - videoflix_network
-
-  worker:
-    build: 
-      context: .
-      dockerfile: backend.Dockerfile
-    container_name: videoflix_worker
-    restart: always
     environment:
-      - DEBUG=True
-      - SECRET_KEY=${SECRET_KEY}
-      - DB_NAME=${DB_NAME:-your_database_name}
-      - DB_USER=${DB_USER:-your_database_user}
-      - DB_PASSWORD=${DB_PASSWORD:-your_database_password}
-      - DB_HOST=db
-      - DB_PORT=5432
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_DB=0
-      - REDIS_LOCATION=redis://redis:6379/1
-      - USE_MAILDEV=${USE_MAILDEV:-True}
-      - MAILDEV_HOST=${MAILDEV_HOST:-maildev}
-      - MAILDEV_PORT=${MAILDEV_PORT:-1025}
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
-      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS:-http://localhost:8000,http://127.0.0.1:8000}
-      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:5500,http://127.0.0.1:5500,http://localhost:4200,http://127.0.0.1:4200}
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:4200}
-      - EMAIL_HOST=${EMAIL_HOST}
-      - EMAIL_PORT=${EMAIL_PORT}
-      - EMAIL_USE_TLS=${EMAIL_USE_TLS}
-      - EMAIL_USE_SSL=${EMAIL_USE_SSL}
-      - EMAIL_HOST_USER=${EMAIL_HOST_USER}
-      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
-      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-noreply@videoflix.local}
-      - DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME:-admin}
-      - DJANGO_SUPERUSER_EMAIL=${DJANGO_SUPERUSER_EMAIL:-admin@example.com}
-      - DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD:-adminpassword}
-      - WORKER_MODE=true
+      - PYTHONUNBUFFERED=1
     depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      web:
-        condition: service_started
-    volumes:
-      - .:/app
-      - videoflix_media:/app/media
-      - videoflix_static:/app/static
-    networks:
-      - videoflix_network
+      - db
+      - redis
 
 volumes:
   postgres_data:
   redis_data:
   videoflix_media:
   videoflix_static:
-
-networks:
-  videoflix_network:
-    driver: bridge
