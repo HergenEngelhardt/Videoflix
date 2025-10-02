@@ -114,7 +114,6 @@ def queue_video_processing(video_instance):
     
     try:
         queue = django_rq.get_queue('default')
-        # Queue video processing (includes both thumbnail and HLS conversion)
         queue.enqueue(process_video_with_thumbnail, video_instance)
         logger.info(f"Video ID {video_instance.id} queued for complete processing")
     except Exception as e:
@@ -130,7 +129,6 @@ def process_video_with_thumbnail(video_instance):
     from django.conf import settings
     
     try:
-        # Generate thumbnail first
         if video_instance.video_file and not video_instance.thumbnail:
             thumbnail_success = generate_video_thumbnail_for_instance(video_instance)
             if thumbnail_success:
@@ -138,7 +136,6 @@ def process_video_with_thumbnail(video_instance):
             else:
                 logger.warning(f"Failed to generate thumbnail for video ID {video_instance.id}")
         
-        # Then convert to HLS
         from .hls_utils import convert_video_to_hls
         hls_success = convert_video_to_hls(video_instance)
         
@@ -170,30 +167,24 @@ def generate_video_thumbnail_for_instance(video_instance):
             
         video_path = video_instance.video_file.path
         
-        # Create thumbnail filename
         video_name = os.path.splitext(os.path.basename(video_path))[0]
         thumbnail_filename = f"{video_name}_thumbnail.jpg"
         
-        # Create temporary thumbnail path
         temp_thumbnail_path = os.path.join(settings.MEDIA_ROOT, 'temp', thumbnail_filename)
         os.makedirs(os.path.dirname(temp_thumbnail_path), exist_ok=True)
         
-        # Generate thumbnail using FFmpeg
         success = generate_video_thumbnail(video_path, temp_thumbnail_path, "00:00:10")
         
         if success and os.path.exists(temp_thumbnail_path):
-            # Read the generated thumbnail
             with open(temp_thumbnail_path, 'rb') as f:
                 thumbnail_content = f.read()
             
-            # Save to video instance
             video_instance.thumbnail.save(
                 thumbnail_filename,
                 ContentFile(thumbnail_content),
                 save=True
             )
             
-            # Clean up temporary file
             try:
                 os.remove(temp_thumbnail_path)
             except:
@@ -208,27 +199,3 @@ def generate_video_thumbnail_for_instance(video_instance):
     except Exception as e:
         logger.error(f"Error generating thumbnail for video ID {video_instance.id}: {str(e)}")
         return False
-
-
-def queue_video_processing(video_instance):
-    """
-    Queue both HLS conversion and thumbnail generation for a video.
-    
-    Args:
-        video_instance: Video model instance to process
-    """
-    from .hls_utils import queue_video_conversion
-    from .ffmpeg_utils import generate_video_thumbnail
-    import django_rq
-    
-    try:
-        # Queue HLS conversion
-        queue_video_conversion(video_instance)
-        
-        # Queue thumbnail generation
-        queue = django_rq.get_queue('default')
-        queue.enqueue(generate_video_thumbnail, video_instance)
-        
-        logger.info(f"Video ID {video_instance.id} queued for full processing (HLS + thumbnail)")
-    except Exception as e:
-        logger.error(f"Error queuing video processing for video ID {video_instance.id}: {str(e)}")

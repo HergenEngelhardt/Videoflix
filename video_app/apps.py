@@ -8,4 +8,4 @@ class VideoAppConfig(AppConfig):
 
     def ready(self):
         """Import signals module to register signal handlers."""
-        from . import signals  # noqa: F401
+        from . import signals 

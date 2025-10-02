@@ -61,7 +61,6 @@ class Video(BaseVideo, VideoMedia):
         Returns None if no thumbnail is available (will be auto-generated on upload)."""
         if self.thumbnail and self.thumbnail.name:
             from django.conf import settings
-            # Handle both local development and production URLs
             if hasattr(settings, 'SITE_URL'):
                 return f"{settings.SITE_URL}{settings.MEDIA_URL}{self.thumbnail.name}"
             else:

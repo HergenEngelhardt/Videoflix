@@ -38,7 +38,6 @@ def dashboard_view(request):
     from collections import defaultdict
     from ..models import Category
     
-    # Get all videos with categories, ordered by creation date DESC
     videos = Video.objects.select_related('category').order_by('-created_at')
     
     if not videos.exists():
@@ -47,17 +46,14 @@ def dashboard_view(request):
             'categories': {}
         }, status=status.HTTP_200_OK)
     
-    # Hero video is the latest video
     hero_video = videos.first()
     hero_serializer = VideoListSerializer(hero_video, context={'request': request})
     
-    # Group videos by category
     categories_dict = defaultdict(list)
     for video in videos:
         if video.category:
             categories_dict[video.category.name].append(video)
     
-    # Serialize grouped videos
     result_categories = {}
     for category_name, category_videos in categories_dict.items():
         serializer = VideoListSerializer(category_videos, many=True, context={'request': request})

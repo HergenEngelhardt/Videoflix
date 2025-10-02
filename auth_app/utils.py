@@ -44,13 +44,11 @@ def send_activation_email_task(user_email, html_content, activation_link):
         )
         email.attach_alternative(html_content, "text/html")
         
-        # Attach logo as inline image
         logo_path = settings.BASE_DIR / 'static' / 'emails' / 'img' / 'logo_videoflix.svg'
         if logo_path.exists():
             with open(logo_path, 'rb') as logo_file:
                 email.attach('logo_videoflix.svg', logo_file.read(), 'image/svg+xml')
                 email.mixed_subtype = 'related'
-            # Set Content-ID for inline embedding
             for attachment in email.attachments:
                 if isinstance(attachment, tuple) and attachment[0] == 'logo_videoflix.svg':
                     email.attachments[-1] = (attachment[0], attachment[1], attachment[2])
@@ -65,8 +63,6 @@ def send_activation_email_task(user_email, html_content, activation_link):
 
 def _enqueue_or_send_now(func, *args):
     """Queue email task or execute immediately when queue is unavailable."""
-    # Prefer synchronous delivery in development when Maildev is enabled to avoid
-    # requiring a background worker for local testing.
     if getattr(settings, 'USE_MAILDEV', False):
         logger.debug("Maildev enabled – sending email immediately without queue")
         return func(*args)
@@ -120,7 +116,6 @@ def send_password_reset_email_task(user_email, html_content, reset_link):
         )
         email.attach_alternative(html_content, "text/html")
         
-        # Attach logo as inline image
         logo_path = settings.BASE_DIR / 'static' / 'emails' / 'img' / 'logo_videoflix.svg'
         if logo_path.exists():
             with open(logo_path, 'rb') as logo_file:
