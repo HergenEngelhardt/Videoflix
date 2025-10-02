@@ -2,18 +2,35 @@
 
 ## Quick Start
 
+**⚠️ IMPORTANT: Setup .env file first to avoid auth problems!**
+
 1. **Clone repository and navigate to project**:
 ```bash
 git clone <repository-url>
 cd Videoflix
 ```
 
-2. **Build and start all services**:
+2. **Setup environment (REQUIRED)**:
+```bash
+# Copy template to .env
+cp .env.template .env
+
+# Generate and set SECRET_KEY in .env
+python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+# Copy the output and replace SECRET_KEY in .env
+
+# Verify database credentials match docker-compose.yml:
+# DB_NAME=videoflix_dev
+# DB_USER=postgres
+# DB_PASSWORD=postgres
+```
+
+3. **Build and start all services**:
 ```bash
 docker-compose up -d
 ```
 
-3. **Verify deployment**:
+4. **Verify deployment**:
 - Web API: http://localhost:8001/
 - Admin Interface: http://localhost:8001/admin/
 - Database: localhost:5433
@@ -91,8 +108,14 @@ docker-compose exec db psql -U postgres videoflix_db
 
 ### Django Commands in Container
 ```bash
-# Run migrations
+# Run migrations (automatically runs on startup, but can be run manually)
 docker-compose exec web python manage.py migrate
+
+# Create migrations after model changes
+docker-compose exec web python manage.py makemigrations
+
+# Check migration status
+docker-compose exec web python manage.py showmigrations
 
 # Create superuser
 docker-compose exec web python manage.py createsuperuser
