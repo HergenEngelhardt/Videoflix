@@ -215,3 +215,6 @@ newrelic.ini
 # OS
 .DS_Store
 Thumbs.db
+
+# Frontend (for local testing only - not part of backend repository)
+frontend/
