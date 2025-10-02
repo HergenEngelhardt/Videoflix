@@ -29,24 +29,46 @@ Dieses Projekt implementiert alle User Stories mit Docker-Unterstützung für Em
 
 ### 1. Environment Setup
 
-```bash
-# Kopiere die Beispiel-Umgebungsdatei
-cp .env.example .env
+**⚠️ CRITICAL: Without these steps you'll get AUTH PROBLEMS!**
 
-# Bearbeite .env mit deinen Einstellungen
+```bash
+# Copy the template file to .env
+cp .env.template .env
+
+# Edit .env and set at least the SECRET_KEY
 nano .env
 ```
 
-**Wichtige Einstellungen in .env:**
+**REQUIRED - Set SECRET_KEY:**
+
+The `SECRET_KEY` is **mandatory**. Django won't start without it!
 
 ```bash
-# Email-Konfiguration (z.B. für Gmail)
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USE_TLS=True
-EMAIL_HOST_USER=your-email@gmail.com
-EMAIL_HOST_PASSWORD=your-app-password
-DEFAULT_FROM_EMAIL=your-email@gmail.com
+# Generate a new SECRET_KEY:
+python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+
+# Copy the output and replace in .env:
+SECRET_KEY=paste-generated-key-here
+```
+
+**Important settings in .env:**
+
+The `.env.template` already contains working default values for Docker:
+- ✅ DB_NAME=videoflix_dev
+- ✅ DB_USER=postgres  
+- ✅ DB_PASSWORD=postgres
+- ✅ DJANGO_SUPERUSER (admin / admin123)
+
+**Only customize if needed:**
+
+# Email-Konfiguration (optional - Maildev wird standardmäßig verwendet)
+# Für echte Emails (z.B. Gmail) diese Zeilen aktivieren:
+# EMAIL_HOST=smtp.gmail.com
+# EMAIL_PORT=587
+# EMAIL_USE_TLS=True
+# EMAIL_HOST_USER=your-email@gmail.com
+# EMAIL_HOST_PASSWORD=your-app-password
+# DEFAULT_FROM_EMAIL=your-email@gmail.com
 
 # Frontend URL (für Email-Links)
 FRONTEND_URL=http://localhost:4200
@@ -63,6 +85,17 @@ docker-compose logs -f
 
 # Nur bestimmte Services
 docker-compose logs -f worker
+```
+
+**Note:** The Docker entrypoint script automatically runs migrations on startup. However, if you modify models or pull changes, you should run migrations manually:
+
+```bash
+# After model changes - create and apply migrations:
+docker-compose exec web python manage.py makemigrations
+docker-compose exec web python manage.py migrate
+
+# Check migration status:
+docker-compose exec web python manage.py showmigrations
 ```
 
 ### 3. Services überprüfen

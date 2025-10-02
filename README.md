@@ -34,7 +34,22 @@ git clone https://github.com/HergenEngelhardt/Videoflix.git
 cd Videoflix
 ```
 
-2. **Start Docker containers:**
+2. **Setup environment (REQUIRED - prevents auth problems!):**
+```bash
+# Copy template to .env
+cp .env.template .env
+
+# Generate SECRET_KEY
+python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+
+# Edit .env and replace SECRET_KEY with generated value
+# The template already has working defaults for Docker:
+# - DB_NAME=videoflix_dev
+# - DB_USER=postgres
+# - DB_PASSWORD=postgres
+```
+
+3. **Start Docker containers:**
 ```bash
 # Development mode
 docker-compose up -d
@@ -43,7 +58,19 @@ docker-compose up -d
 docker-compose up -d --build
 ```
 
-3. **Check logs:**
+**Note:** The entrypoint script automatically runs `python manage.py migrate` on container startup. If you modify models, rebuild the containers or run migrations manually:
+
+```bash
+# After model changes, create and apply migrations:
+docker-compose exec web python manage.py makemigrations
+docker-compose exec web python manage.py migrate
+
+# Or rebuild containers to apply changes:
+docker-compose down
+docker-compose up -d --build
+```
+
+4. **Check logs:**
 ```bash
 # All services
 docker-compose logs -f
@@ -194,10 +221,19 @@ createdb your_database_name
 # For local development, change REDIS_HOST=localhost in .env
 ```
 
-7. **Migrate database:**
+7. **Database migrations (IMPORTANT!):**
 ```bash
+# Create new migrations if models changed
+python manage.py makemigrations
+
+# Apply migrations to database
 python manage.py migrate
+
+# Verify migration status
+python manage.py showmigrations
 ```
+
+**Note:** Always run `makemigrations` first when working with a freshly cloned repository or after pulling changes that modify models. This ensures your database schema matches the current model definitions.
 
 8. **Create superuser:**
 ```bash
@@ -403,6 +439,59 @@ The Django Admin Interface is available at `/admin/` and provides:
 - **Monitoring:** Monitor HLS processing status
 
 ## Development
+
+### Best Practices for Model Changes
+
+**Important:** Whenever you modify Django models (add/remove fields, change relationships, etc.), follow these steps:
+
+#### For Local Development:
+```bash
+# 1. Make your model changes in models.py
+# 2. Create migrations
+python manage.py makemigrations
+
+# 3. Review the generated migration file in migrations/ folder
+# 4. Apply migrations
+python manage.py migrate
+
+# 5. Verify everything works
+python manage.py runserver
+```
+
+#### For Docker Development:
+```bash
+# 1. Make your model changes in models.py
+# 2. Create migrations in container
+docker-compose exec web python manage.py makemigrations
+
+# 3. Apply migrations
+docker-compose exec web python manage.py migrate
+
+# 4. Restart containers to ensure changes are applied
+docker-compose restart web worker
+```
+
+#### For Team Collaboration:
+```bash
+# After pulling changes from Git that include model changes:
+# 1. Check for new migration files
+git status
+git log --oneline
+
+# 2. Apply any new migrations
+python manage.py migrate          # Local
+# or
+docker-compose exec web python manage.py migrate  # Docker
+
+# 3. If you see migration conflicts, check:
+python manage.py showmigrations
+```
+
+**Why this is important:**
+- ✅ Prevents database schema mismatches
+- ✅ Avoids "relation does not exist" errors
+- ✅ Ensures team members have consistent database schemas
+- ✅ Makes deployment safer and more predictable
 
 ### Code Quality Standards
 - PEP 8 compliant
