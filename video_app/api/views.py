@@ -25,6 +25,50 @@ def video_list_view(request):
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def dashboard_view(request):
+    """
+    GET /api/video/dashboard/
+    Get dashboard with hero video and videos grouped by categories.
+    Returns:
+    - hero_video: Featured/latest video for hero section
+    - categories: Dict with category names as keys and video lists as values
+    """
+    from collections import defaultdict
+    from ..models import Category
+    
+    # Get all videos with categories, ordered by creation date DESC
+    videos = Video.objects.select_related('category').order_by('-created_at')
+    
+    if not videos.exists():
+        return Response({
+            'hero_video': None,
+            'categories': {}
+        }, status=status.HTTP_200_OK)
+    
+    # Hero video is the latest video
+    hero_video = videos.first()
+    hero_serializer = VideoListSerializer(hero_video, context={'request': request})
+    
+    # Group videos by category
+    categories_dict = defaultdict(list)
+    for video in videos:
+        if video.category:
+            categories_dict[video.category.name].append(video)
+    
+    # Serialize grouped videos
+    result_categories = {}
+    for category_name, category_videos in categories_dict.items():
+        serializer = VideoListSerializer(category_videos, many=True, context={'request': request})
+        result_categories[category_name] = serializer.data
+    
+    return Response({
+        'hero_video': hero_serializer.data,
+        'categories': result_categories
+    }, status=status.HTTP_200_OK)
+
+
 def get_manifest_path(movie_id, resolution):
     """Get path to HLS manifest file.
     Constructs filesystem path for specific video resolution manifest.

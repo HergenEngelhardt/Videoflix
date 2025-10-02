@@ -8,10 +8,11 @@ from .utils import queue_video_conversion, cleanup_hls_files
 def process_video(sender, instance, created, **kwargs):
     """
     Signal to automatically process video after upload.
-    Queues HLS conversion in background when new video is created with file.
+    Queues HLS conversion and thumbnail generation in background when new video is created with file.
     """
     if created and instance.video_file:
-        queue_video_conversion(instance)
+        from .utils import queue_video_processing
+        queue_video_processing(instance)
 
 
 def cleanup_video_file(instance):

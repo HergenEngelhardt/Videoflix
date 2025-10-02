@@ -22,7 +22,7 @@ def generate_activation_link(user):
 def render_activation_email(user, activation_link):
     """Render activation email HTML template.
     Creates formatted HTML email content with activation link."""
-    return render_to_string('emails/activation_email.html', {
+    return render_to_string('activation_email.html', {
         'activation_link': activation_link,
         'user': user,
     })
@@ -30,15 +30,21 @@ def render_activation_email(user, activation_link):
 
 def send_activation_email_task(user_email, html_content, activation_link):
     """Send activation email directly using EmailMultiAlternatives."""
-    text_content = f"Please activate your Videoflix account: {activation_link}"
-    email = EmailMultiAlternatives(
-        subject='Activate your Videoflix Account',
-        body=text_content,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        to=[user_email],
-    )
-    email.attach_alternative(html_content, "text/html")
-    email.send()
+    try:
+        text_content = f"Please activate your Videoflix account: {activation_link}"
+        email = EmailMultiAlternatives(
+            subject='Activate your Videoflix Account',
+            body=text_content,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[user_email],
+        )
+        email.attach_alternative(html_content, "text/html")
+        result = email.send()
+        print(f"Activation email sent successfully to {user_email}: {result}")
+        return result
+    except Exception as e:
+        print(f"Error sending activation email to {user_email}: {str(e)}")
+        raise
 
 
 def send_activation_email(user):
@@ -63,7 +69,7 @@ def generate_reset_link(user):
 
 def render_password_reset_email(user, reset_link):
     """Render password reset email HTML template."""
-    return render_to_string('emails/password_reset_email.html', {
+    return render_to_string('password_reset_email.html', {
         'reset_link': reset_link,
         'user': user,
     })
@@ -71,15 +77,21 @@ def render_password_reset_email(user, reset_link):
 
 def send_password_reset_email_task(user_email, html_content, reset_link):
     """Send password reset email directly using EmailMultiAlternatives."""
-    text_content = f"Please reset your Videoflix password: {reset_link}"
-    email = EmailMultiAlternatives(
-        subject='Password Reset - Videoflix',
-        body=text_content,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        to=[user_email],
-    )
-    email.attach_alternative(html_content, "text/html")
-    email.send()
+    try:
+        text_content = f"Please reset your Videoflix password: {reset_link}"
+        email = EmailMultiAlternatives(
+            subject='Password Reset - Videoflix',
+            body=text_content,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[user_email],
+        )
+        email.attach_alternative(html_content, "text/html")
+        result = email.send()
+        print(f"Password reset email sent successfully to {user_email}: {result}")
+        return result
+    except Exception as e:
+        print(f"Error sending password reset email to {user_email}: {str(e)}")
+        raise
 
 
 def send_password_reset_email(user):

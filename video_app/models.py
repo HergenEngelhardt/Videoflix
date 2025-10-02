@@ -57,9 +57,15 @@ class Video(BaseVideo, VideoMedia):
     @property
     def thumbnail_url(self):
         """Return full URL for thumbnail.
-        Constructs complete media URL for video thumbnail image."""
-        if self.thumbnail:
-            return f"{settings.MEDIA_URL}{self.thumbnail}"
+        Constructs complete media URL for video thumbnail image.
+        Returns None if no thumbnail is available (will be auto-generated on upload)."""
+        if self.thumbnail and self.thumbnail.name:
+            from django.conf import settings
+            # Handle both local development and production URLs
+            if hasattr(settings, 'SITE_URL'):
+                return f"{settings.SITE_URL}{settings.MEDIA_URL}{self.thumbnail.name}"
+            else:
+                return f"{settings.MEDIA_URL}{self.thumbnail.name}"
         return None
 
     def get_hls_resolutions(self):
