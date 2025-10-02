@@ -33,7 +33,20 @@ if not SECRET_KEY:
 DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", default="localhost").split(",")
-CSRF_TRUSTED_ORIGINS = os.environ.get("CSRF_TRUSTED_ORIGINS", default="http://localhost:4200").split(",")
+# CSRF Configuration - Must match CORS origins for proper security
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5500",  # VS Code Live Server 
+    "http://127.0.0.1:5500",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000", 
+    "http://localhost:4200",
+    "http://127.0.0.1:4200",
+]
+
+# Allow additional CSRF origins from environment
+if os.environ.get("CSRF_TRUSTED_ORIGINS"):
+    additional_csrf_origins = os.environ.get("CSRF_TRUSTED_ORIGINS").split(",")
+    CSRF_TRUSTED_ORIGINS.extend(additional_csrf_origins)
 
 
 # Application definition
@@ -212,8 +225,22 @@ SIMPLE_JWT = {
 }
 
 # CORS Settings
-CORS_ALLOWED_ORIGINS = os.environ.get("CSRF_TRUSTED_ORIGINS", "http://localhost:3000").split(",")
-CORS_ALLOW_CREDENTIALS = True
+# CORS Configuration for Frontend Integration
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5500",  # VS Code Live Server default
+    "http://127.0.0.1:5500", 
+    "http://localhost:3000",  # React/Vue dev server
+    "http://127.0.0.1:3000",
+    "http://localhost:4200",  # Angular dev server
+    "http://127.0.0.1:4200",
+]
+
+# Allow additional origins from environment
+if os.environ.get("CORS_ALLOWED_ORIGINS"):
+    additional_origins = os.environ.get("CORS_ALLOWED_ORIGINS").split(",")
+    CORS_ALLOWED_ORIGINS.extend(additional_origins)
+
+CORS_ALLOW_CREDENTIALS = True  # Required for HttpOnly cookies
 
 # Email Settings
 # For development: Use console backend if EMAIL_HOST is not properly configured
