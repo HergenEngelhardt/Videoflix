@@ -40,6 +40,11 @@ else:
     print(f"Superuser '{username}' already exists.")
 EOF
 
-python manage.py rqworker default &
-
-exec gunicorn core.wsgi:application --bind 0.0.0.0:8000 --reload
+# Start RQ Worker only if WORKER_MODE is set
+if [ "$WORKER_MODE" = "true" ]; then
+    echo "Starting RQ Worker..."
+    exec python manage.py rqworker default
+else
+    echo "Starting Gunicorn Web Server..."
+    exec gunicorn core.wsgi:application --bind 0.0.0.0:8000 --reload
+fi
