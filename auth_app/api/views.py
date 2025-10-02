@@ -21,11 +21,10 @@ from ..utils import send_activation_email, send_password_reset_email
 
 def create_user_response(user):
     """Create response data for user registration.
-    Generates JWT tokens and user info for API responses."""
-    refresh = RefreshToken.for_user(user)
+    Returns user info and activation_token string as per API documentation."""
     return {
         'user': {'id': user.id, 'email': user.email},
-        'token': str(refresh.access_token)
+        'token': 'activation_token'
     }
 
 
