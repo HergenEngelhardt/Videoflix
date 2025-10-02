@@ -15,9 +15,7 @@ echo "PostgreSQL is ready - continuing..."
 
 # Original commands (without wait_for_db)
 python manage.py collectstatic --noinput
-
-# IMPORTANT: Only migrate, do NOT create migrations in container!
-# Migrations must be created locally before building the Docker image.
+python manage.py makemigrations
 python manage.py migrate
 
 # Create a superuser using environment variables
@@ -40,11 +38,6 @@ else:
     print(f"Superuser '{username}' already exists.")
 EOF
 
-# Start RQ Worker only if WORKER_MODE is set
-if [ "$WORKER_MODE" = "true" ]; then
-    echo "Starting RQ Worker..."
-    exec python manage.py rqworker default
-else
-    echo "Starting Gunicorn Web Server..."
-    exec gunicorn core.wsgi:application --bind 0.0.0.0:8000 --reload
-fi
+python manage.py rqworker default &
+
+exec gunicorn core.wsgi:application --bind 0.0.0.0:8000 --reload
