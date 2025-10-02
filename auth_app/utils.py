@@ -35,6 +35,8 @@ def render_activation_email(user, activation_link):
 def send_activation_email_task(user_email, html_content, activation_link):
     """Send activation email directly using EmailMultiAlternatives."""
     try:
+        from email.mime.image import MIMEImage
+        
         text_content = f"Please activate your Videoflix account: {activation_link}"
         email = EmailMultiAlternatives(
             subject='Activate your Videoflix Account',
@@ -43,15 +45,16 @@ def send_activation_email_task(user_email, html_content, activation_link):
             to=[user_email],
         )
         email.attach_alternative(html_content, "text/html")
+        email.mixed_subtype = 'related'
         
         logo_path = settings.BASE_DIR / 'static' / 'emails' / 'img' / 'logo_videoflix.svg'
         if logo_path.exists():
             with open(logo_path, 'rb') as logo_file:
-                email.attach('logo_videoflix.svg', logo_file.read(), 'image/svg+xml')
-                email.mixed_subtype = 'related'
-            for attachment in email.attachments:
-                if isinstance(attachment, tuple) and attachment[0] == 'logo_videoflix.svg':
-                    email.attachments[-1] = (attachment[0], attachment[1], attachment[2])
+                logo_data = logo_file.read()
+                image = MIMEImage(logo_data, 'svg+xml')
+                image.add_header('Content-ID', '<logo_videoflix>')
+                image.add_header('Content-Disposition', 'inline', filename='logo_videoflix.svg')
+                email.attach(image)
         
         result = email.send()
         print(f"Activation email sent successfully to {user_email}: {result}")
@@ -107,6 +110,8 @@ def render_password_reset_email(user, reset_link):
 def send_password_reset_email_task(user_email, html_content, reset_link):
     """Send password reset email directly using EmailMultiAlternatives."""
     try:
+        from email.mime.image import MIMEImage
+        
         text_content = f"Please reset your Videoflix password: {reset_link}"
         email = EmailMultiAlternatives(
             subject='Password Reset - Videoflix',
@@ -115,12 +120,16 @@ def send_password_reset_email_task(user_email, html_content, reset_link):
             to=[user_email],
         )
         email.attach_alternative(html_content, "text/html")
+        email.mixed_subtype = 'related'
         
         logo_path = settings.BASE_DIR / 'static' / 'emails' / 'img' / 'logo_videoflix.svg'
         if logo_path.exists():
             with open(logo_path, 'rb') as logo_file:
-                email.attach('logo_videoflix.svg', logo_file.read(), 'image/svg+xml')
-                email.mixed_subtype = 'related'
+                logo_data = logo_file.read()
+                image = MIMEImage(logo_data, 'svg+xml')
+                image.add_header('Content-ID', '<logo_videoflix>')
+                image.add_header('Content-Disposition', 'inline', filename='logo_videoflix.svg')
+                email.attach(image)
         
         result = email.send()
         print(f"Password reset email sent successfully to {user_email}: {result}")
