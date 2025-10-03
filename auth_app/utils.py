@@ -20,7 +20,7 @@ def generate_activation_link(user):
     Returns complete frontend URL for account activation process."""
     token = default_token_generator.make_token(user)
     uid = urlsafe_base64_encode(force_bytes(user.pk))
-    return f"{settings.FRONTEND_URL}/frontend/pages/auth/activate.html?uid={uid}&token={token}"
+    return f"{settings.FRONTEND_URL}/pages/auth/activate.html?uid={uid}&token={token}"
 
 
 def render_activation_email(user, activation_link):
@@ -96,7 +96,7 @@ def generate_reset_link(user):
     Returns complete frontend URL for password reset process."""
     token = default_token_generator.make_token(user)
     uid = urlsafe_base64_encode(force_bytes(user.pk))
-    return f"{settings.FRONTEND_URL}/frontend/pages/auth/confirm_password.html?uid={uid}&token={token}"
+    return f"{settings.FRONTEND_URL}/pages/auth/confirm_password.html?uid={uid}&token={token}"
 
 
 def render_password_reset_email(user, reset_link):
