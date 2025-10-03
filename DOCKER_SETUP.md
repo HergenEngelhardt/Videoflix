@@ -1,12 +1,10 @@
 # Videoflix - Docker Setup
 
-Dies ist ein Docker Setup, dass dir die Entwicklung und uns die Abnahme des Videoflix Projektes erleichtern soll.
+This is a Docker setup that should facilitate the development and review of the Videoflix project for you and us.
 
-Vor der Verwendung schaue dir bitte die einführenden Videos unter:
+Before using it, please watch the introductory videos at:
 
-[Link zu Videos](https://developer-akademie.teachable.com/courses/enrolled/1656501)
-
-dazu an.
+[Link to Videos](https://developer-akademie.teachable.com/courses/enrolled/1656501)
 
 ## Table of Contents
 
@@ -14,13 +12,13 @@ dazu an.
 
 - [Videoflix - Docker Setup](#videoflix---docker-setup)
   - [Table of Contents](#table-of-contents)
-  - [Voraussetzungen](#voraussetzungen)
+  - [Prerequisites](#prerequisites)
   - [Quickstart](#quickstart)
-    - [Aufsetzen und Einrichtung des Projekts](#aufsetzen-und-einrichtung-des-projekts)
-      - [Anpassen der settings.py Datei](#anpassen-der-settingspy-datei)
+    - [Setting up and configuring the project](#setting-up-and-configuring-the-project)
+      - [Adjusting the settings.py file](#adjusting-the-settingspy-file)
   - [Usage](#usage)
-    - [Environment Variablen](#environment-variablen)
-    - [Migrations im Docker Container](#migrations-im-docker-container)
+    - [Environment Variables](#environment-variables)
+    - [Migrations in Docker Container](#migrations-in-docker-container)
     - [requirements.txt](#requirementstxt)
   - [Troubleshooting](#troubleshooting)
 
@@ -28,69 +26,68 @@ dazu an.
 
 ---
 
-## Voraussetzungen
+## Prerequisites
 
-- **Docker** mit **docker-compose** installiert.
+- **Docker** with **docker-compose** installed.
 
-    Siehe [Anleitung](https://docs.docker.com/compose/install/) zur Installation.
+    See [Installation Guide](https://docs.docker.com/compose/install/) for installation.
 
-    Erforderlich für den Start des Projekts, da es vollständig containerisiert ist.
+    Required to start the project as it is fully containerized.
 
-- **git** ist installiert.
+- **git** is installed.
 
-    Siehe [Anleitung](https://git-scm.com/downloads) zur Installation.
+    See [Installation Guide](https://git-scm.com/downloads) for installation.
 
-    Erforderlich, um das Projekt herunterzuladen.
+    Required to download the project.
 
 ---
 
 ## Quickstart
 
 > [!CAUTION]
-> <span style="color: red;">Bitte halte dich genau an die hier beschriebene Anleitung. Wenn du die grundlegene
-Konfiguration veränderst, kann das Projekt unter Umständen nicht gestartet werden.</span>
+> <span style="color: red;">Please follow the instructions described here exactly. If you change the basic
+configuration, the project may not start under certain circumstances.</span>
 >
-> <span style="color: red;">Du kannst Variablen in der `.env` Datei verändern oder neue hinzufügen. Bitte lösche keine
-der vorhandenen Variablen.</span>
+> <span style="color: red;">You can change variables in the `.env` file or add new ones. Please do not delete any
+of the existing variables.</span>
 >
-> <span style="color: red;">Bitte ändere nichts, an den im weiteren Verlauf, angegebenen Einträgen in der `settings.py`.</span>
+> <span style="color: red;">Please do not change anything about the entries in the `settings.py` specified in the following steps.</span>
 >
-> <span style="color: red;">Bitte nimm keine Änderungen an den Dateien `backend.Dockerfile`, `docker-compose` und `backend.entrypoint.sh` vor!<ins></span>
+> <span style="color: red;">Please do not make any changes to the files `backend.Dockerfile`, `docker-compose` and `backend.entrypoint.sh`!<ins></span>
 >
-> <span style="color: red;">Du kannst (und musst), weitere Packages installieren und auch entsprechende Änderungen an
-der `settings.py` Datei vornehmen. <ins>Achte darauf deine `requirements.txt` Datei regelmäßig zu aktualisieren.<ins></span>
+> <span style="color: red;">You can (and must) install additional packages and also make corresponding changes to
+the `settings.py` file. <ins>Make sure to update your `requirements.txt` file regularly.<ins></span>
 
-1. **Definiere die Umgebungsvariablen, unter Benutzung der [.env.template](./.env.template) Datei**. Nutze hierzu die
-`git bash Komandozeile`.
+1. **Define the environment variables using the [.env.template](./.env.template) file**. Use the
+`git bash command line` for this.
 
     ```bash
-    # Erstellt eine .env-Datei mit dem Inhalt von .env.template
+    # Creates a .env file with the content of .env.template
     cp .env.template .env
     ```
 
     > [!IMPORTANT]
-    > Stelle sicher, dass die Platzhalterwerte gegebenenfalls durch tatsächliche, für deine Umgebung spezifische Werte
-    ersetzt werden.
+    > Make sure that placeholder values are replaced with actual values specific to your environment if necessary.
 
-### Aufsetzen und Einrichtung des Projekts
+### Setting up and configuring the project
 
-- Virtual Environment erstellen und aktivieren
-- Django installieren
-- DRF Installieren
-- django rq installieren
-- django-redis installieren
-- gunicorn installieren
-- psycopg2-binary installieren
-- python-dotenv installieren
-- whitenoise installieren
-- aktualisiere deine `requirements.txt` Datei
-- erstelle das Django Projekt im aktuellen Ordner
-    - projektname => core
+- Create and activate virtual environment
+- Install Django
+- Install DRF
+- Install django rq
+- Install django-redis
+- Install gunicorn
+- Install psycopg2-binary
+- Install python-dotenv
+- Install whitenoise
+- Update your `requirements.txt` file
+- Create the Django project in the current folder
+    - project name => core
 
-#### <ins>Anpassen der `settings.py` Datei
+#### <ins>Adjusting the `settings.py` file
 
-Passe deine `seetings.py` Datei wie folgt an (Bitte lösche unnötige Kommentare, die dir ggf. nur Informationen zum
-Editieren liefern. Die ... geben an, dass hier weitere Zeilen stehen, diese müssen auch erhalten bleiben):
+Adjust your `settings.py` file as follows (Please delete unnecessary comments that may only provide you with information for
+editing. The ... indicate that there are more lines here, these must also be preserved):
 
 ```python
 # settings.py
@@ -103,14 +100,14 @@ from dotenv import load_dotenv
 load_dotenv()
 ...
 
-# folgende Zeile ändern
+# Change the following line
 SECRET_KEY = os.getenv('SECRET_KEY', default='django-insecure-@#x5h3zj!g+8g1v@2^b6^9$8&f1r7g$@t3v!p4#=g0r5qzj4m3')
 
-# Zwei Zeilen hinzufügen
+# Add two lines
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", default="localhost").split(",")
 CSRF_TRUSTED_ORIGINS = os.environ.get("CSRF_TRUSTED_ORIGINS", default="http://localhost:4200").split(",")
 
-# Füge django-rq zu deinen Apps hinzu
+# Add django-rq to your apps
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -118,13 +115,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django_rq', # neue Zeile
+    'django_rq', # new line
 ]
 
-# Füge das whitenoise middleware hinzu
+# Add the whitenoise middleware
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware', # neue Zeile
+    'whitenoise.middleware.WhiteNoiseMiddleware', # new line
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -135,9 +132,9 @@ MIDDLEWARE = [
 
 ...
 
-# Ändere die Einstellungen für die Datenbak und Füge die Konfiguration für Redis und den RQ-Worker hinzu
+# Change the database settings and add the configuration for Redis and the RQ-Worker
 
-# Ersetze die DATABASES Einstellung
+# Replace the DATABASES setting
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -149,7 +146,7 @@ DATABASES = {
     }
 }
 
-# Füge die Konfiguration für Redis und RQ hinzu
+# Add the configuration for Redis and RQ
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
@@ -173,7 +170,7 @@ RQ_QUEUES = {
 
 ...
 
-# Ändere und Erweitere die Konfiguration für static und media Dateien
+# Change and extend the configuration for static and media files
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "static"
 
@@ -192,7 +189,7 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 docker-compose up --build
 ```
 
--> falls das nicht funktioniert, verwende (ohne "-")
+-> if this doesn't work, use (without "-")
 ```bash
 docker compose up --build
 ```
@@ -203,70 +200,70 @@ Open application in browser on [localhost:8000](http://localhost:8000).
 
 ## Usage
 
-### Environment Variablen
+### Environment Variables
 
-Alle erforderlichen Umgebungsvariablen werden in der [.env](./.env) Datei gespeichert.
+All required environment variables are stored in the [.env](./.env) file.
 
 > [!IMPORTANT]
-> Bitte verändere die Namen der Variablen in dieser Konfiguration nicht. Dies kann unter Umständen dazu führen, dass wir
-das Projekt nicht prüfen und abnehmen können.
+> Please do not change the names of the variables in this configuration. This may result in us
+being unable to review and approve the project.
 >
-> Ändere bereits vorhandene Variablen gegebenenfalls mit sinnvollen Werten
+> Change existing variables with sensible values if necessary
 
 ---
 
 > [!NOTE]
-> [backend.entrypoint.sh](backend.entrypoint.sh) erstellt automatisch einen Superuser basierend auf den
-Umgebungsvariablen **`DJANGO_SUPERUSER_USERNAME`, `DJANGO_SUPERUSER_PASSWORD` und `DJANGO_SUPERUSER_EMAIL`**
+> [backend.entrypoint.sh](backend.entrypoint.sh) automatically creates a superuser based on the
+environment variables **`DJANGO_SUPERUSER_USERNAME`, `DJANGO_SUPERUSER_PASSWORD` and `DJANGO_SUPERUSER_EMAIL`**
 
 | Name | Type | Description | Default | Mandatory |
 | :--- | :---: | :---------- | :----- | :---: |
-| **DJANGO_SUPERUSER_USERNAME** | str | Benutzername für das Django-Admin-Superuser-Konto. Dieser Benutzer wird automatisch erstellt wenn er nicht existiert. | `admin` |   |
-| **DJANGO_SUPERUSER_PASSWORD** | str |  Passwort für das Django-Admin-Superuser-Konto. Achte darauf, dass es sicher ist. | `adminpassword` |   |
-| **DJANGO_SUPERUSER_EMAIL** | str |  E-Mail-Adresse für das Django-Admin-Superuser-Konto. Wird für die Wiederherstellung des Kontos und für Benachrichtigungen verwendet. | `admin@example.com` |   |
-| **SECRET_KEY** | str | Ein geheimer Schlüssel für die Kryptografie in Django. Dieser sollte eine lange, zufällige Zeichenfolge sein und vertraulich behandelt werden. |   | x |
-| **DEBUG** | bool | Aktiviert oder deaktiviert den Debug-Modus. Sollte in der Produktion auf False gesetzt werden, um die Offenlegung sensibler Informationen zu verhindern. | `True` |   |
-| **ALLOWED_HOSTS** | List[str] | Eine Liste von Strings, die die Host-/Domainnamen darstellen, die diese Django-Site bedienen kann. Wichtig für die Sicherheit. | `[localhost]` |   |
+| **DJANGO_SUPERUSER_USERNAME** | str | Username for the Django admin superuser account. This user will be automatically created if it doesn't exist. | `admin` |   |
+| **DJANGO_SUPERUSER_PASSWORD** | str |  Password for the Django admin superuser account. Make sure it is secure. | `adminpassword` |   |
+| **DJANGO_SUPERUSER_EMAIL** | str |  Email address for the Django admin superuser account. Used for account recovery and notifications. | `admin@example.com` |   |
+| **SECRET_KEY** | str | A secret key for cryptography in Django. This should be a long, random string and kept confidential. |   | x |
+| **DEBUG** | bool | Enables or disables debug mode. Should be set to False in production to prevent exposure of sensitive information. | `True` |   |
+| **ALLOWED_HOSTS** | List[str] | A list of strings representing the host/domain names that this Django site can serve. Important for security. | `[localhost]` |   |
 | **CSRF_TRUSTED_ORIGINS** | List[str] | Cors-Headers allowed origins. | `[http://localhost:4200]` |   |
-| **DB_NAME** | str | Name der PostgreSQL-Datenbank, zu der eine Verbindung hergestellt werden soll. Wichtig für Datenbankoperationen. | `your_database_name` | x |
-| **DB_USER** | str | Benutzername für die Authentifizierung bei der PostgreSQL-Datenbank. | `your_database_user` | x |
-| **DB_PASSWORD** | str | Passwort für den PostgreSQL-Datenbankbenutzer. | `your_database_password` | x |
-| **DB_HOST** | str | Host-Adresse der PostgreSQL-Datenbank. Normalerweise localhost oder der Dienstname in Docker. | `db` |   |
-| **DB_PORT** | int | Portnummer für die Verbindung zur PostgreSQL-Datenbank. | `5432` |   |
+| **DB_NAME** | str | Name of the PostgreSQL database to connect to. Important for database operations. | `your_database_name` | x |
+| **DB_USER** | str | Username for authentication with the PostgreSQL database. | `your_database_user` | x |
+| **DB_PASSWORD** | str | Password for the PostgreSQL database user. | `your_database_password` | x |
+| **DB_HOST** | str | Host address of the PostgreSQL database. Usually localhost or the service name in Docker. | `db` |   |
+| **DB_PORT** | int | Port number for connecting to the PostgreSQL database. | `5432` |   |
 | **REDIS_LOCATION** | str | Redis location | `redis://redis:6379/1` |   |
 | **REDIS_HOST** | str | Redis host | `redis` |   |
 | **REDIS_PORT** | int | Redis port | `6379` |   |
 | **REDIS_DB** | int | Redis DB | `0` |   |
-| **EMAIL_HOST** | str | SMTP-Server-Adresse für den Versand von E-Mails. | `smtp.example.com` | x |
-| **EMAIL_PORT** | int | Portnummer für den SMTP-Server. | `587` |   |
-| **EMAIL_USE_TLS** | bool | Aktiviert TLS für den E-Mail-Versand. Empfohlen für die Sicherheit. | `True` |   |
-| **EMAIL_USE_SSL** | bool | E-Mail verwendet SSL | `False` |   |
-| **EMAIL_HOST_USER** | str | Benutzername für das E-Mail-Konto, das zum Senden von E-Mails verwendet wird. | `your_email_user` | x |
-| **EMAIL_HOST_PASSWORD** | str | Passwort für das E-Mail-Konto. Achte auf die Sicherheit. | `your_email_password` | x |
-| **DEFAULT_FROM_EMAIL** | str | E-Mailadresse die von Django verwendet wird | `EMAIL_HOST_USER` |   |
+| **EMAIL_HOST** | str | SMTP server address for sending emails. | `smtp.example.com` | x |
+| **EMAIL_PORT** | int | Port number for the SMTP server. | `587` |   |
+| **EMAIL_USE_TLS** | bool | Enables TLS for email sending. Recommended for security. | `True` |   |
+| **EMAIL_USE_SSL** | bool | Email uses SSL | `False` |   |
+| **EMAIL_HOST_USER** | str | Username for the email account used to send emails. | `your_email_user` | x |
+| **EMAIL_HOST_PASSWORD** | str | Password for the email account. Pay attention to security. | `your_email_password` | x |
+| **DEFAULT_FROM_EMAIL** | str | Email address used by Django | `EMAIL_HOST_USER` |   |
 
-### Migrations im Docker Container
+### Migrations in Docker Container
 
-Um gemachte Änderungen an der Datenbankstruktur an Docker zu übertragen hast du zwei verschiedene Möglichkeiten:
+To transfer changes made to the database structure to Docker, you have two different options:
 
-1. Docker Container komplett neu erstellen (nicht empfohlen)
+1. Completely recreate Docker container (not recommended)
 
-    - stoppe Docker in der Kommandozeile mit der Tastenkombination `Strg+C`
-    - starte Docker neu mit dem Befehl `docker-compose up --build`
-    - falls `docker-compose up --build` nicht funktioniert, verwende `docker compose up --build`
+    - Stop Docker in the command line with the key combination `Ctrl+C`
+    - Restart Docker with the command `docker-compose up --build`
+    - If `docker-compose up --build` doesn't work, use `docker compose up --build`
 
-2. Führe die Migration direkt im Docker Container aus (besser)
+2. Execute the migration directly in the Docker container (better)
 
-    - erstelle die migrations Dateien direkt im Docker Container
+    - Create the migration files directly in the Docker container
 
     ```bash
     docker-compose exec web python manage.py makemigrations
     ```
 
-    Dieser Befehl wird direk in der Bash des Docker Containers ausgeführt. (Wir erinnern uns, unser Docker Setup
-    enthält im Prinzip ein komplettes Betriebssystem)
+    This command is executed directly in the bash of the Docker container. (We remember, our Docker setup
+    basically contains a complete operating system)
 
-    - Führe die Migration aus:
+    - Execute the migration:
 
     ```bash
     docker-compose exec web python manage.py migrate
@@ -274,12 +271,12 @@ Um gemachte Änderungen an der Datenbankstruktur an Docker zu übertragen hast d
 
 ### requirements.txt
 
-Die Dependencies der Anwendung sind in der Datei [requirements.txt](./requirements.txt) aufgeführt.
+The dependencies of the application are listed in the [requirements.txt](./requirements.txt) file.
 
-Um sie in den Docker Container zu ändern, muss die Anwendung neu erstellt werden.
+To change them in the Docker container, the application must be rebuilt.
 
-Um nur die primären (Top-Level) Pakete aufzulisten, die du über `pip` installiert hast - ohne ihre Abhängigkeiten
-anzuzeigen - verwende:
+To list only the primary (top-level) packages that you installed via `pip` - without showing their dependencies
+- use:
 
 ```bash
 pip list --not-required
@@ -287,7 +284,7 @@ pip list --not-required
 
 ## Troubleshooting
 
-- **Beim Starten von Docker erhalte ich in der Komandozeile diesen Fehler:**
+- **When starting Docker I get this error in the command line:**
 
     ```bash
     unable to get image 'postgres:latest': error during connect:
@@ -296,9 +293,9 @@ pip list --not-required
     ```
 
     > [!NOTE]
-    > Bitte stelle sicher, dass du Docker Desktop gestartet hast.
+    > Please make sure you have started Docker Desktop.
 
-- **Das Starten von Docker bricht mit der folgenden Meldung in der Konsole ab:**
+- **Starting Docker aborts with the following message in the console:**
 
     ```bash
     videoflix_backend   | exec ./backend.entrypoint.sh: no such file or directory
@@ -306,23 +303,23 @@ pip list --not-required
     ```
 
     > [!NOTE]
-    > Bitte stelle sicher, dass die Datei `backend.entrypoint.sh` mit der End of Line Sequence LF abgespeichert ist.
+    > Please make sure that the `backend.entrypoint.sh` file is saved with the End of Line Sequence LF.
     >
-    > Siehe [Google Suche](https://www.google.com/search?sca_esv=81208bf63503b115&rlz=1C1CHBF_deDE1069DE1069&q=cr+lf+lf+in+vscode&spell=1&sa=X&ved=2ahUKEwihofbto4eNAxXK9bsIHXhtCLYQBSgAegQIDxAB&biw=1920&bih=911&dpr=1)
+    > See [Google Search](https://www.google.com/search?sca_esv=81208bf63503b115&rlz=1C1CHBF_deDE1069DE1069&q=cr+lf+lf+in+vscode&spell=1&sa=X&ved=2ahUKEwihofbto4eNAxXK9bsIHXhtCLYQBSgAegQIDxAB&biw=1920&bih=911&dpr=1)
 
-- **Beim Starten des Docker Containern erhältst du nach einer Änderung der Datenbank eine Fehlermeldung, dass die
-Migration der Datenbank fehlschlägt.**
+- **When starting the Docker container you get an error message after changing the database that the
+database migration fails.**
 
     > [!NOTE]
-    > Dies kann passieren, wenn du Änderungen an einem Model vornimmst. Um trotzdem eine Migration durchführen zu können
-    kannst do folgenden Befehl verwenden:
+    > This can happen if you make changes to a model. To still be able to perform a migration
+    you can use the following command:
     >
     > ```bash
-    > # docker run --rm [OPTIONEN] <DEIN_IMAGE_NAME> <DEIN_MIGRATIONSBEFEHL>
+    > # docker run --rm [OPTIONS] <YOUR_IMAGE_NAME> <YOUR_MIGRATION_COMMAND>
     > docker run --rm web python manage.py makemigrations
     >
-    > # oftmals reicht dieser Befehl bereits aus um beim nächsten start das Problem zu umgehen.
-    > # Zur Sicherheit kannst du aber auch direkt im Anschluss die eigentliche Migration durchführen.
+    > # Often this command alone is enough to bypass the problem at the next start.
+    > # For safety, you can also directly perform the actual migration afterwards.
     > docker run --rm web python manage.py migrate
     > ```
     >
