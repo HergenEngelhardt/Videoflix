@@ -1,118 +1,32 @@
-# This file specifies files and directories that should be ignored by Docker when building images.
+# This file is used to specify files and directories that should be ignored by Docker when building images.
 # It is similar to .gitignore but specific to Docker.
-
-# Python
 *.pyc
 *.pyo
-*.pyd
-__pycache__/
-*.so
-*.egg
-*.egg-info/
-.eggs/
-dist/
-build/
-*.whl
-
-# IMPORTANT: Do NOT ignore migrations folders!
-# Migrations must be included in the Docker image
-# !**/migrations/
-# !**/migrations/*.py
-
-# Virtual environments
-.venv/
-venv/
-env/
-ENV/
-
-# IDE and editor files
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Git
-.git/
-.gitignore
-
-# Environment files (security)
-.env
-.env.local
-.env.*.local
-.env.production
-.env.development
-
-# Security files
-secrets/
-*.key
-*.pem
-*.p12
-*.pfx
-*.crt
-*.cer
-*.jks
-*.keystore
-config.json
-secret.json
-credentials.json
-auth.json
-.aws/
-.credentials
-.ssh/
-id_rsa*
-id_ed25519*
-*.pub
-*.token
-.api_key
-.secret
-oauth.json
-jwt.key
-
-# Database files
+*.mo
 *.db
-*.sqlite3
+*.css.map
+*.egg-info
+*.sql.gz
+.cache
+.project
+.idea
+.pydevproject
+.idea/workspace.xml
+.DS_Store
+.git/
+.sass-cache
+.vagrant/
+__pycache__
+dist
+docs
+env
+venv
+logs
+src/{{ project_name }}/settings/local.py
+src/node_modules
+web/media
+web/static/CACHE
+stats
+Dockerfile
+.env
 db.sqlite3
-
-# Logs
-logs/
-*.log
-
-# Documentation (keep DOCKER_MIGRATION_FIX.md for reference)
-docs/
-
-# Docker files (avoid recursion)
-docker-compose*.yml
-.dockerignore
-
-# Cache directories
-.cache/
-.pytest_cache/
-.coverage
-htmlcov/
-
-# Media files (will be created in container)
-media/
-staticfiles/
-static/CACHE
-
-# Node.js (if any)
-node_modules/
-npm-debug.log*
-
-# Temporary files
-.tmp/
-temp/
-*.tmp
-
-# Frontend files (if separate)
-frontend/
