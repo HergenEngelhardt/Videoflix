@@ -1,626 +1,522 @@
-# Videoflix Backend
+# Videoflix - Professional Video Streaming Platform! 📺
 
-A Netflix-like video streaming backend developed with Django REST Framework. The system supports user authentication, HLS video streaming in multiple resolutions, and background video processing.
+Hey! This is my video streaming project that I built with Django. It's like Netflix but for your own videos - upload, process, and stream videos with professional HLS streaming technology!
 
-## 📁 Docker Files
+I built this because I wanted to learn how modern video streaming platforms work. The result? A fully-featured platform that automatically converts videos to multiple resolutions and streams them efficiently to any device.
 
-- **`backend.Dockerfile`** - Development Dockerfile (Alpine-based, with FFmpeg)
-- **`Dockerfile.prod`** - Production Dockerfile (with Gunicorn and security configuration)
-- **`backend.entrypoint.sh`** - Startup script for both environments
-- **`docker-compose.yml`** - Development setup (with Maildev)
-- **`docker-compose.prod.yml`** - Production setup (with Nginx)
-- **`.dockerignore`** - Files excluded from Docker container
+## What can my app do?
 
-📖 **Complete Docker Documentation:** See [`DOCKER_SETUP.md`](DOCKER_SETUP.md)
+✅ **User Management** - Secure registration, login, and profile management  
+✅ **Video Upload** - Upload videos in various formats  
+✅ **Automatic Processing** - FFmpeg converts videos to HLS streaming format  
+✅ **Multi-Resolution Streaming** - 120p to 1080p adaptive streaming  
+✅ **Category Management** - Organize videos by categories  
+✅ **Thumbnail Generation** - Automatic video thumbnails  
+✅ **JWT Authentication** - Secure token-based authentication  
+✅ **Email Verification** - Account activation and password reset emails  
+✅ **Redis Caching** - Fast performance with Redis  
+✅ **Admin Interface** - Full Django admin for content management  
+✅ **Responsive API** - RESTful API for frontend integration  
 
-## Features
+## What I used (my tech stack)
 
-### Authentication
-- User registration with email activation
-- Login/Logout with HTTP-Only JWT Cookies
-- Token refresh mechanism
-- Password reset via email
-- Custom User Model with email as username
+**Backend:** Django 5.2.6 (the framework), Django REST Framework 3.15.2 (for the API)  
+**Database:** PostgreSQL (production), SQLite (development)  
+**Authentication:** JWT Tokens with SimpleJWT (secure login system)  
+**Video Processing:** FFmpeg (converts videos to HLS streaming format)  
+**Caching:** Redis (for performance optimization)  
+**Task Queue:** Django-RQ with Redis (for background video processing)  
+**Image Processing:** Pillow (for thumbnails and image handling)  
+**Email:** Django email system (for account verification)  
+**Containers:** Docker with Docker Compose (complete development environment)  
+**Static Files:** WhiteNoise (for serving static files)  
+**Production Server:** Gunicorn (WSGI server)  
 
-### Video Management
-- Video upload and management via Django Admin
-- Automatic HLS conversion in multiple resolutions (120p, 360p, 480p, 720p, 1080p)
-- Video categorization
-- Thumbnail support
-- Background video processing with Redis/RQ
+## How my streaming works
 
-### API Endpoints
-- RESTful API according to exact specification
-- HLS manifest and segment streaming
-- Secure video delivery only for authenticated users
-- CORS support for frontend integration
+**HLS (HTTP Live Streaming)** - Industry standard used by Netflix, YouTube  
+**Adaptive Bitrate** - Automatically adjusts quality based on connection  
+**Multiple Resolutions** - 120p, 360p, 480p, 720p, 1080p  
+**Fast Delivery** - Segmented streaming for instant playback  
+**Background Processing** - Videos process while users browse  
 
-## Quick Start
+## What you need to get it running
 
-### ⚠️ IMPORTANT: Create Migrations Before Docker Build!
+### If you want to run it with Docker (Recommended!)
+- **Docker Desktop** (installed and running)
+- **Docker Compose** (comes with Docker Desktop)
+- **Git** (to get the code)
+- **A web browser**
 
-**Before starting Docker, you must create all migrations locally:**
+### If you want to run it locally
+- **Python 3.8 or newer**
+- **Git** (to get the code)
+- **FFmpeg** (for video processing - see installation guide below!)
+- **PostgreSQL** (optional, SQLite works for development)
+- **Redis** (for caching and task queue)
 
+## Installing FFmpeg (Important for video processing!)
+
+### Windows - Option 1: Download
+1. Go to: https://ffmpeg.org/download.html
+2. Best to take Windows builds from gyan.dev or BtbN
+3. Extract ZIP file to `C:\ffmpeg`
+4. Add the path to environment variables:
+   - Right-click "This PC" → "Properties" → "Advanced System Settings"
+   - "Environment Variables..." → In Path add `C:\ffmpeg\bin`
+
+### Windows - Option 2: Command Line (easier)
 ```powershell
-# Activate virtual environment
-.\.venv\Scripts\Activate.ps1
-
-# Create all migrations
-python manage.py makemigrations
-python manage.py makemigrations auth_app
-python manage.py makemigrations video_app
-
-# Verify
-python manage.py showmigrations
+winget install --id Gyan.FFmpeg -e --source winget
 ```
 
-**Reason:** Migrations must exist in the Git repository and are copied into the Docker container. They must NOT be created inside the container.
+### macOS (for Mac users)
+Install Homebrew (if not already there):
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+Install FFmpeg:
+```bash
+brew install ffmpeg
+```
 
-### Option 1: Docker Setup (Recommended)
+### Linux (Ubuntu/Debian)
+```bash
+sudo apt update
+sudo apt install ffmpeg
+```
 
-**Detailed Guide:** See [`DOCKER_SETUP.md`](DOCKER_SETUP.md)
+**Important:** With Docker you don't need to install FFmpeg yourself - Docker handles everything for you!
 
-1. **Clone repository:**
+## Docker Setup (Recommended! 🐳)
+
+### What you need for Docker
+- **Docker Desktop** must be installed and started
+- **Docker Compose** (comes with Docker Desktop)
+
+### Docker Desktop Setup
+1. Install Docker Desktop from https://www.docker.com/products/docker-desktop/
+2. Start Docker Desktop (look for the Docker icon in your taskbar)
+3. Test if everything works:
+```powershell
+docker --version
+docker-compose --version
+```
+
+**Tip:** Docker Desktop is super handy. You can view containers, read logs, and manage everything. Make sure it's running before you start!
+
+## How to install my project
+
+### 1. Get the code
 ```bash
 git clone https://github.com/HergenEngelhardt/Videoflix.git
 cd Videoflix
 ```
 
-2. **Check environment file:**
+### 2. Set up environment variables
+Create a `.env` file in the project root:
 ```bash
-# .env file already exists
-# Check the most important settings:
-# - SECRET_KEY
-# - DB_NAME, DB_USER, DB_PASSWORD (must match docker-compose.yml)
-# - DJANGO_SUPERUSER_* (for automatic admin creation)
+# Copy the example if available, or create new .env file
+cp .env.example .env
 ```
 
-3. **Start Docker containers:**
-```bash
-# Development Mode
-docker-compose up -d
-
-# Follow logs
-docker-compose logs -f
-
-# Or with force rebuild
-docker-compose up -d --build
-```
-
-**Important:** The entrypoint script (`backend.entrypoint.sh`) automatically performs:
-- Waits for PostgreSQL
-- Runs `collectstatic`
-- Runs `migrate` (NOT `makemigrations`!)
-- Creates superuser (from .env variables)
-- Starts RQ Worker in background
-- Starts Gunicorn server
-
-**After model changes:**
-```bash
-# 1. Create migrations LOCALLY
-python manage.py makemigrations
-
-# 2. Rebuild containers
-docker-compose down
-docker-compose build --no-cache
-docker-compose up -d
-```
-
-4. **Check services:**
-```bash
-# Status of all containers
-docker-compose ps
-
-# Enter container shell
-docker-compose exec web sh
-
-# Logs of individual services
-docker-compose logs -f web
-docker-compose logs -f worker
-docker-compose logs -f db
-```
-
-5. **Available services:**
-- **API:** http://localhost:8000/api/
-- **Admin:** http://localhost:8000/admin/ (Login: see .env DJANGO_SUPERUSER_*)
-- **Maildev UI:** http://localhost:1080 (Local inbox for test emails)
-- **PostgreSQL:** localhost:5432
-- **Redis:** localhost:6379
-
-### Option 2: Production Deployment
-
-**See:** [`DOCKER_SETUP.md`](DOCKER_SETUP.md) - Section "Production Deployment"
-
-```bash
-# With production compose file
-docker-compose -f docker-compose.prod.yml up -d --build
-
-# Check logs
-docker-compose -f docker-compose.prod.yml logs -f
-```
-
-### Option 3: Local Installation (without Docker)
-
-1. **Clone repository:**
-```bash
-git clone https://github.com/HergenEngelhardt/Videoflix.git
-cd Videoflix
-```
-
-2. **Create virtual environment:**
-```bash
-python -m venv .venv
-source .venv/bin/activate  # Linux/Mac
-# or
-.venv\Scripts\activate     # Windows
-```
-
-3. **Install dependencies:**
-```bash
-pip install -r requirements.txt
-
-# Important: Install setuptools if you get import errors
-pip install setuptools
-```
-
-4. **Configure environment variables:**
-For local development, create a `.env` file:
+Add the following to your `.env` file:
 ```env
-# Django Superuser (will be created automatically)
+# Django Superuser (for automatic admin creation)
 DJANGO_SUPERUSER_USERNAME=admin
-DJANGO_SUPERUSER_PASSWORD=your_admin_password
-DJANGO_SUPERUSER_EMAIL=admin@yourdomain.com
+DJANGO_SUPERUSER_PASSWORD=adminpassword
+DJANGO_SUPERUSER_EMAIL=admin@example.com
 
-# Django Settings
-SECRET_KEY="your-secret-key-here"
+# Basic Django settings
+SECRET_KEY="django-insecure-lp6h18zq4@z30symy*oz)+hp^uoti48r_ix^qc-m@&yfxd7&hn"
 DEBUG=True
 ALLOWED_HOSTS=localhost,127.0.0.1
 CSRF_TRUSTED_ORIGINS=http://localhost:5500,http://127.0.0.1:5500
 
-# Database Settings (PostgreSQL - recommended, or leave empty for SQLite)
+# Database settings for Docker
 DB_NAME=your_database_name
 DB_USER=your_database_user
 DB_PASSWORD=your_database_password
-DB_HOST=localhost
+DB_HOST=db
 DB_PORT=5432
 
-# For SQLite (local development): Leave DB_* empty or set DB_HOST to empty
-# The system will automatically use SQLite if PostgreSQL connection fails
-
-# Redis Settings (for local development change REDIS_HOST to localhost)
-REDIS_HOST=localhost
-REDIS_LOCATION=redis://localhost:6379/1
+# Redis settings
+REDIS_HOST=redis
+REDIS_LOCATION=redis://redis:6379/1
 REDIS_PORT=6379
 REDIS_DB=0
 
-# Email Settings
+# Email settings (for development - will use console backend)
 EMAIL_HOST=smtp.example.com
 EMAIL_PORT=587
 EMAIL_HOST_USER=your_email_user
-EMAIL_HOST_PASSWORD=your_email_password
-EMAIL_USE_TLS=True
-EMAIL_USE_SSL=False
-DEFAULT_FROM_EMAIL=your_email@example.com
+EMAIL_HOST_PASSWORD=your_email_user_password
 EMAIL_USE_TLS=True
 EMAIL_USE_SSL=False
 DEFAULT_FROM_EMAIL=default_from_email
-# Maildev (development mail catcher)
-USE_MAILDEV=True
-MAILDEV_HOST=localhost
-MAILDEV_PORT=1025
-DEFAULT_FROM_EMAIL=noreply@videoflix.local
+
+# JWT Token settings
+JWT_ACCESS_TOKEN_LIFETIME=60
+JWT_REFRESH_TOKEN_LIFETIME=1440
 ```
 
-**Note:** You can copy and modify the Docker example file for local development:
-```bash
-cp .env.docker.example .env
-# Edit .env with your local settings (change hosts, passwords, etc.)
+## Starting the project
+
+### Option 1: With Docker (Recommended! 🚀)
+
+#### First setup with Docker
+```powershell
+# Make sure Docker Desktop is running!
+
+# Build Docker images
+docker-compose build
+
+# Start all services (web app + PostgreSQL + Redis)
+docker-compose up -d
+
+# Check if containers are running
+docker-compose ps
 ```
 
-5. **Database Setup:**
+#### Look at Docker Desktop
+1. Open Docker Desktop
+2. Click on "Containers"
+3. You should see your "videoflix" project with three running containers:
+   - `videoflix_backend` (Django app)
+   - `videoflix_database` (PostgreSQL)
+   - `videoflix_redis` (Redis cache)
 
-**Option A: SQLite (Default - No setup required)**
-- For local development, change `DB_HOST=localhost` or leave DB variables empty
-- SQLite database will be created automatically
+#### Initial database setup
+```powershell
+# Run database migrations
+docker-compose exec web python manage.py migrate
 
-**Option B: PostgreSQL (Recommended for production)**
-```bash
-# Install PostgreSQL and create database
-createdb your_database_name
-# Keep DB_HOST=db for Docker, change to localhost for local PostgreSQL
+# Create admin user
+docker-compose exec web python manage.py createsuperuser
+
+# Create some test categories (optional)
+docker-compose exec web python manage.py shell
 ```
 
-**Important for local development:** If you get database connection errors, simply leave the DB_* variables empty in your .env file to use SQLite instead.
+#### The app will run at:
+- **API:** http://127.0.0.1:8000/api/
+- **Admin Interface:** http://127.0.0.1:8000/admin/
+- **Frontend:** Connect your frontend to the API endpoints
 
-6. **Redis Setup (Optional but recommended):**
-```bash
-# Windows: https://github.com/microsoftarchive/redis/releases
-# Linux: sudo apt-get install redis-server
-# Mac: brew install redis
-# For local development, change REDIS_HOST=localhost in .env
+### Option 2: Local development setup
+
+#### 1. Create Python environment
+```powershell
+python -m venv .venv
+.venv\Scripts\activate
 ```
 
-7. **Database migrations (IMPORTANT!):**
-```bash
-# Create new migrations if models changed
-python manage.py makemigrations
+#### 2. Install dependencies
+```powershell
+pip install -r requirements.txt
+```
 
-# Apply migrations to database
+#### 3. Set up local database (SQLite)
+For local development, you can use SQLite by adding to your `.env`:
+```env
+# Force SQLite for local development
+FORCE_SQLITE=True
+```
+
+#### 4. Install and start Redis locally
+Download Redis for Windows from: https://github.com/microsoftarchive/redis/releases
+Or use Docker just for Redis:
+```powershell
+docker run -d -p 6379:6379 redis:latest
+```
+
+#### 5. Run migrations and create superuser
+```powershell
 python manage.py migrate
-
-# Verify migration status
-python manage.py showmigrations
-```
-
-**Note:** Always run `makemigrations` first when working with a freshly cloned repository or after pulling changes that modify models. This ensures your database schema matches the current model definitions.
-
-8. **Create superuser:**
-```bash
-# Automatic creation (if environment variables are set):
-python manage.py create_superuser_if_env
-
-# Manual creation (if needed):
 python manage.py createsuperuser
 ```
 
-9. **Create categories:**
-```bash
-# Go to http://localhost:8000/admin/
-# Log in with your superuser  
-# Create categories under "Video App" > "Categories"
-# Recommended categories: Drama, Comedy, Action, Horror, Romance, Sci-Fi
-```
-
-10. **Start server:**
-```bash
+#### 6. Start the development server
+```powershell
 python manage.py runserver
 ```
 
-11. **Start RQ Worker (in separate terminal, if Redis is configured):**
-```bash
-python manage.py rqworker default
-```
+## Managing Docker containers
 
-12. **Check RQ Dashboard (if Redis is configured):**
-```bash
-# RQ Dashboard: http://localhost:8000/django-rq/
-```
-
-## API Documentation
-
-### Authentication Endpoints
-
-#### Registration
-```http
-POST /api/register/
-Content-Type: application/json
-
-{
-  "email": "user@example.com",
-  "password": "securepassword",
-  "confirmed_password": "securepassword"
-}
-```
-
-#### Account Activation
-```http
-GET /api/activate/<uidb64>/<token>/
-```
-
-#### Login
-```http
-POST /api/login/
-Content-Type: application/json
-
-{
-  "email": "user@example.com",
-  "password": "securepassword"
-}
-```
-
-#### Logout
-```http
-POST /api/logout/
-```
-
-#### Token Refresh
-```http
-POST /api/token/refresh/
-```
-
-#### Password Reset
-```http
-POST /api/password_reset/
-Content-Type: application/json
-
-{
-  "email": "user@example.com"
-}
-```
-
-#### Password Confirmation
-```http
-POST /api/password_confirm/<uidb64>/<token>/
-Content-Type: application/json
-
-{
-  "new_password": "newsecurepassword",
-  "confirm_password": "newsecurepassword"
-}
-```
-
-### Video Endpoints
-
-#### Video List
-```http
-GET /api/video/
-Authorization: Bearer <token> (or HTTP-Only Cookie)
-```
-
-#### HLS Manifest
-```http
-GET /api/video/<movie_id>/<resolution>/index.m3u8
-Authorization: Bearer <token> (or HTTP-Only Cookie)
-```
-
-#### HLS Segment
-```http
-GET /api/video/<movie_id>/<resolution>/<segment>/
-Authorization: Bearer <token> (or HTTP-Only Cookie)
-```
-
-## Docker Commands (Quick Reference)
-
-**Complete Reference:** See [`DOCKER_SETUP.md`](DOCKER_SETUP.md)
-
-### Container Management
 ```powershell
-# Start
-docker-compose up -d
-
-# Stop
-docker-compose down
-
-# Rebuild (without cache)
-docker-compose build --no-cache
+# Check container status
+docker-compose ps
 
 # View logs
 docker-compose logs -f web
+docker-compose logs -f db
+docker-compose logs -f redis
 
-# Container status
+# Stop everything
+docker-compose down
+
+# Stop and delete database (careful!)
+docker-compose down -v
+
+# Rebuild after code changes
+docker-compose build --no-cache
+docker-compose up -d
+
+# Access container shell (for debugging)
+docker-compose exec web bash
+docker-compose exec db psql -U videoflix_user -d videoflix_db
+```
+
+## Quick Test Setup
+
+### Test the Docker Setup
+```powershell
+# Check if containers are running
 docker-compose ps
 
-# Enter container shell
-docker-compose exec web sh
+# Test the API
+curl http://127.0.0.1:8000/api/
+
+# Test registration
+curl -X POST http://127.0.0.1:8000/api/register/ \
+  -H "Content-Type: application/json" \
+  -d '{"email": "test@example.com", "password": "testpassword123"}'
 ```
 
-### Django Commands in Container
+### Test Video Upload
+After logging in, you can test video upload through the admin interface or API:
+1. Go to http://127.0.0.1:8000/admin/
+2. Login with your superuser account
+3. Add a category in "Video_App > Categories"
+4. Upload a video in "Video_App > Videos"
+5. The video will be automatically processed to HLS format!
+
+## My API endpoints (for frontend developers)
+
+| URL | Method | What it does | Auth needed? |
+|-----|--------|--------------|---------------|
+| `/api/register/` | POST | Create new user | No |
+| `/api/activate/{uidb64}/{token}/` | GET | Activate user account | No |
+| `/api/login/` | POST | Login user | No |
+| `/api/logout/` | POST | Logout user | Yes |
+| `/api/token/refresh/` | POST | Refresh JWT token | No |
+| `/api/password/reset/` | POST | Request password reset | No |
+| `/api/password/reset/confirm/` | POST | Confirm password reset | No |
+| `/api/categories/` | GET | List all categories | No |
+| `/api/videos/` | GET | List all videos | No |
+| `/api/videos/{id}/` | GET | Get specific video | No |
+| `/api/videos/` | POST | Upload new video | Yes |
+| `/api/videos/{id}/` | PUT/PATCH | Update video | Yes |
+| `/api/videos/{id}/` | DELETE | Delete video | Yes |
+
+## API Examples
+
+### Create new user
+```bash
+curl -X POST http://127.0.0.1:8000/api/register/ \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com", "password": "securepassword123"}'
+```
+
+### Login
+```bash
+curl -X POST http://127.0.0.1:8000/api/login/ \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com", "password": "securepassword123"}'
+```
+
+Response:
+```json
+{
+  "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+  "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+  "user": {
+    "id": 1,
+    "email": "user@example.com"
+  }
+}
+```
+
+### Upload video
+```bash
+curl -X POST http://127.0.0.1:8000/api/videos/ \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -F "title=My Video" \
+  -F "description=A test video" \
+  -F "category=1" \
+  -F "video_file=@/path/to/video.mp4"
+```
+
+### List videos
+```bash
+curl -X GET http://127.0.0.1:8000/api/videos/ \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
+
+## Video Processing Pipeline
+
+1. **Upload:** User uploads video file
+2. **Storage:** Video saved to media directory
+3. **Queue:** Processing task added to Redis queue
+4. **FFmpeg:** Background worker converts video to HLS
+5. **Resolutions:** Multiple qualities generated (120p-1080p)
+6. **Thumbnails:** Automatic thumbnail extraction
+7. **Ready:** Video available for streaming
+
+## Development Features
+
+### Code Quality
 ```powershell
-# Apply migrations (runs automatically on startup)
+# Format code
+black .
+
+# Check for issues
+flake8 .
+
+# Run tests
+pytest
+
+# Run tests with coverage
+pytest --cov=.
+```
+
+### Database Operations
+```powershell
+# Create new migration
+python manage.py makemigrations
+
+# Apply migrations  
+python manage.py migrate
+
+# Django shell
+python manage.py shell
+
+# Database shell (PostgreSQL)
+python manage.py dbshell
+```
+
+### Docker Development
+```powershell
+# Run migrations in Docker
+docker-compose exec web python manage.py makemigrations
 docker-compose exec web python manage.py migrate
 
-# Create superuser (if not created automatically)
-docker-compose exec web python manage.py createsuperuser
+# Run tests in Docker
+docker-compose exec web pytest
 
-# Django Shell
+# Django shell in Docker
 docker-compose exec web python manage.py shell
-
-# Check migration status
-docker-compose exec web python manage.py showmigrations
 ```
 
-### Troubleshooting
-```powershell
-# Complete reset
-docker-compose down -v
-docker-compose build --no-cache
-docker-compose up -d
+## Production Deployment
 
-# Restart worker
-docker-compose restart worker
+For production deployment:
 
-# Database backup
-docker-compose exec db pg_dump -U your_database_user your_database_name > backup.sql
+1. Set `DEBUG=False` in environment
+2. Configure proper PostgreSQL database
+3. Set up Redis for production
+4. Configure email settings for user verification
+5. Set up proper static file serving (nginx)
+6. Use Gunicorn as WSGI server
+7. Configure SSL/HTTPS
+8. Set up monitoring and logging
+9. Configure background task workers
+
+### Production Environment Variables
+```env
+SECRET_KEY=your-production-secret-key
+DEBUG=False
+DATABASE_URL=postgresql://user:password@localhost/videoflix_db
+ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
+REDIS_URL=redis://localhost:6379/0
+EMAIL_HOST=smtp.yourdomain.com
+EMAIL_HOST_USER=noreply@yourdomain.com
+EMAIL_HOST_PASSWORD=your-email-password
 ```
 
-## 🐛 Common Problems
+## Troubleshooting
 
-### "ValueError: dependency on app with no migrations"
-**Solution:** Migrations must be created LOCALLY before Docker build:
-```powershell
-python manage.py makemigrations
-python manage.py makemigrations auth_app
-python manage.py makemigrations video_app
-docker-compose down
-docker-compose build --no-cache
-docker-compose up -d
+### Common Issues
+
+**FFmpeg not found:**
+- Make sure FFmpeg is installed and in your PATH
+- With Docker, this is handled automatically
+
+**Video processing fails:**
+- Check Redis is running: `docker-compose logs redis`
+- Check worker logs: `docker-compose logs web`
+- Verify video file format is supported
+
+**Database connection errors:**
+- Make sure PostgreSQL container is running: `docker-compose ps`
+- Check database logs: `docker-compose logs db`
+- Verify environment variables in `.env`
+
+**Permission errors:**
+- On Windows: Make sure Docker can access your drive
+- On Linux/macOS: Check file permissions
+
+### Debug Mode
+Enable debug logging:
+```python
+# In settings.py
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'video_app': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
+    },
+}
 ```
 
-### Container won't start / Port conflict
-```powershell
-# Check ports
-netstat -ano | findstr :8000
-netstat -ano | findstr :5432
+## Performance Tips
 
-# Kill process
-taskkill /PID <PID> /F
-```
-
-### More Solutions
-See [`DOCKER_SETUP.md`](DOCKER_SETUP.md) - Section "Troubleshooting"
-
-## API Documentation
-- **Backend:** Django 5.2.6, Django REST Framework
-- **Database:** PostgreSQL (production), SQLite (development)
-- **Cache/Queue:** Redis, Django-RQ
-- **Authentication:** JWT with HTTP-Only Cookies
-- **Video Processing:** FFmpeg for HLS conversion
-- **Deployment:** Docker, Docker Compose
-
-### Security Features
-- HTTP-Only JWT Cookies (XSS protection)
-- Token blacklisting on logout
-- CORS configuration
-- Secure password validation
-- Email activation for new accounts
-
-### Video Processing
-- Automatic HLS conversion in background
-- Multiple resolutions: 480p, 720p, 1080p
-- Adaptive bitrate streaming
-- Efficient segment delivery
-
-### Performance Optimizations
-- Redis caching
-- Background task processing
-- Optimized DB queries with select_related
-- Static/Media file serving
-
-## Admin Interface
-
-The Django Admin Interface is available at `/admin/` and provides:
-
-- **User Management:** Manage users, activate/deactivate
-- **Video Management:** Upload videos, manage categories
-- **Monitoring:** Monitor HLS processing status
-
-## Development
-
-### 🔥 IMPORTANT: Best Practices for Model Changes
-
-**For Docker Development:**
-
-Migrations are ALWAYS created locally, NEVER inside the container!
-
-```powershell
-# 1. Make model changes in models.py
-
-# 2. Create migrations LOCALLY
-python manage.py makemigrations
-python manage.py makemigrations auth_app
-python manage.py makemigrations video_app
-
-# 3. Commit migrations to Git
-git add */migrations/*.py
-git commit -m "Add migrations for model changes"
-
-# 4. Rebuild containers
-docker-compose down
-docker-compose build --no-cache
-docker-compose up -d
-
-# 5. Check logs to verify migrations were applied successfully
-docker-compose logs web
-```
-
-**Why this is important:**
-- ✅ Prevents "dependency on app with no migrations" errors
-- ✅ Migration files are copied into Docker image
-- ✅ Team members have consistent database schemas
-- ✅ `.dockerignore` allows migrations folder (but not `__pycache__`)
-
-**For Local Development (without Docker):**
-```bash
-# 1. Model-Änderungen in models.py vornehmen
-# 2. Migrationen erstellen
-python manage.py makemigrations
-
-# 3. Migrationen anwenden
-python manage.py migrate
-
-# 4. Server neu starten
-python manage.py runserver
-```
-
-**Bei Team-Zusammenarbeit:**
-
-**Bei Team-Zusammenarbeit:**
-```bash
-# Nach Git-Pull mit Model-Änderungen:
-# 1. Neue Migrations-Dateien prüfen
-git status
-git log --oneline
-
-# 2. Migrationen anwenden
-python manage.py migrate          # Lokal
-# oder
-docker-compose exec web python manage.py migrate  # Docker (nur bei bestehenden Migrationen)
-
-# 3. Bei Migrations-Konflikten:
-python manage.py showmigrations
-```
-
-### Code Quality Standards
-- PEP 8 compliant
-- Functions max. 14 lines
-- Snake_case for functions and variables
-- PascalCase for classes
-- Descriptive variable names
-- No unused imports/variables
-
-### Debugging
-- Debug mode in settings.py
-- Django Debug Toolbar (optional)
-- Logging configuration in settings.py
-
-## Deployment
-
-### Production Setup
-1. **Set environment variables:**
-   - `DEBUG=False`
-   - Secure `SECRET_KEY`
-   - Production database
-   - Email server configuration
-
-2. **Enable SSL/HTTPS:**
-   - Reverse proxy (nginx)
-   - SSL certificates
-   - Cookie secure flags
-
-3. **Static Files:**
-```bash
-python manage.py collectstatic
-```
-
-4. **Database Migration:**
-```bash
-python manage.py migrate
-```
+- Use Redis caching for frequently accessed data
+- Optimize video processing with proper FFmpeg settings
+- Use CDN for video delivery in production
+- Implement pagination for large video lists
+- Use database indexing for search functionality
+- Consider using background workers for heavy tasks
 
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
+2. Create a feature branch (`git checkout -b feature/awesome-feature`)
+3. Commit your changes (`git commit -m 'Add awesome feature'`)
+4. Push to the branch (`git push origin feature/awesome-feature`)
 5. Open a Pull Request
-
-## License
-
-This project is released under the MIT License. See `LICENSE` file for details.
-
-## Video Processing Pipeline
-
-### HLS Conversion Process
-1. **Upload**: Video uploaded via Django Admin
-2. **Queue**: Background job queued with Redis/RQ
-3. **Processing**: FFmpeg converts to multiple resolutions:
-   - 120p (300k bitrate)
-   - 360p (800k bitrate)
-   - 480p (1200k bitrate)
-   - 720p (2500k bitrate)
-   - 1080p (5000k bitrate)
-4. **Storage**: HLS segments stored in media/hls/
-5. **Streaming**: Adaptive bitrate streaming via API
-
-### Performance Optimizations
-- Background video processing prevents UI blocking
-- HLS adaptive streaming reduces bandwidth usage
-- Redis caching for improved response times
-- HTTP-Only JWT cookies for security
 
 ## Support
 
-For questions or issues:
-- GitHub Issues: [https://github.com/HergenEngelhardt/Videoflix/issues](https://github.com/HergenEngelhardt/Videoflix/issues)
-- Email: [Your-Email@domain.com](mailto:Your-Email@domain.com)
+For issues and questions:
+- Check this documentation first
+- Look at existing issues in the repository  
+- Create a new issue with detailed description
+- Contact me if needed
+
+## Thanks to
+
+- **Django and DRF communities** for the excellent frameworks
+- **FFmpeg developers** for powerful video processing
+- **Redis team** for fast caching solutions
+- **Docker** for containerization made easy
+- **PostgreSQL** for reliable database
+- All contributors and testers
+
+## License
+
+This project is open source. Feel free to use it for learning and development!
+
+---
+
+**Thanks for checking out my Videoflix project! 🎬**
+
+Happy streaming! 📺✨
