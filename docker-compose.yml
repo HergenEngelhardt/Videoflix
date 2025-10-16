@@ -20,20 +20,31 @@ services:
     build:
       context: .
       dockerfile: backend.Dockerfile
+    image: videoflix-backend:latest
     env_file: .env
     container_name: videoflix_backend
-    command: ["bash", "-c", "dos2unix backend.entrypoint.sh && chmod +x backend.entrypoint.sh && ./backend.entrypoint.sh"]
     volumes:
-      - .:/app
       - videoflix_media:/app/media
       - videoflix_static:/app/static
     ports:
       - "8000:8000"
-    environment:
-      - PYTHONUNBUFFERED=1
     depends_on:
       - db
       - redis
+    command: ./backend.entrypoint.sh
+
+  worker:
+    image: videoflix-backend:latest
+    env_file: .env
+    container_name: videoflix_worker
+    volumes:
+      - videoflix_media:/app/media
+      - videoflix_static:/app/static
+    depends_on:
+      - db
+      - redis
+      - web
+    command: ./entrypoint.worker.sh
 
 
 

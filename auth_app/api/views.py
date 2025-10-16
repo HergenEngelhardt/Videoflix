@@ -2,6 +2,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from django.contrib.auth.tokens import default_token_generator
@@ -16,30 +17,43 @@ from .serializers import (
     PasswordConfirmSerializer
 )
 from ..models import CustomUser
-from ..utils import send_activation_email, send_password_reset_email
+from ..services.email_service import EmailService
 
 
-def create_user_response(user):
+def create_user_response(user, token):
     """Create response data for user registration.
-    Returns user info and activation_token string as per API documentation."""
+    Returns user info and real activation token."""
     return {
         'user': {'id': user.id, 'email': user.email},
-        'token': 'activation_token'
+        'token': token
     }
 
 
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def register_view(request):
-    """POST /api/register/ - Register a new user and send activation email.
-    Creates inactive user account and queues verification email."""
-    serializer = UserRegistrationSerializer(data=request.data)
-    if serializer.is_valid():
-        user = serializer.save()
-        send_activation_email(user)
-        return Response(create_user_response(user), status=status.HTTP_201_CREATED)
+class RegistrationView(APIView):
+    """API endpoint for registering a new user and sending a confirmation email with activation token."""
+    permission_classes = [AllowAny]
 
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def post(self, request):
+        """Handle user registration, saves the account, generates an activation token, and triggers a confirmation email."""
+        serializer = UserRegistrationSerializer(data=request.data)
+
+        if serializer.is_valid():
+            saved_account = serializer.save()
+            token = default_token_generator.make_token(saved_account)
+            EmailService.send_registration_confirmation_email(saved_account, token)
+            
+            data = {
+                'user': {
+                    'id': saved_account.pk,
+                    'email': saved_account.email
+                },
+                'token': token
+            }
+            return Response(data, status=status.HTTP_201_CREATED)
+        else:
+            return Response({
+                'error': 'Email or Password is invalid'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
 
 def decode_user_from_uidb64(uidb64):
@@ -80,16 +94,34 @@ def create_activation_success_response():
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
-def activate_view(request, uidb64, token):
-    """GET /api/activate/<uidb64>/<token>/ - Activate user account."""
-    user = decode_user_from_uidb64(uidb64)
-    if not user:
-        return create_activation_error_response()
+def activate_account(request, uidb64, token):
+    """Activate a user account via email verification token received in the activation link."""
+    try:
+        # decode user-ID from base64
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = get_object_or_404(CustomUser, pk=uid)
 
-    if activate_user_account(user, token):
-        return create_activation_success_response()
-    else:
-        return create_activation_error_response()
+        if not default_token_generator.check_token(user, token):
+            return Response({'error': 'Token invalid or expired.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # check if user is active
+        if user.is_active:
+            return Response({
+                'message': 'Account is already activated.'
+            }, status=status.HTTP_200_OK)
+
+        # activate user
+        user.is_active = True
+        user.save()
+
+        return Response({
+            'message': 'Account successfully activated.'
+        }, status=status.HTTP_200_OK)
+
+    except (TypeError, ValueError, OverflowError, CustomUser.DoesNotExist):
+        return Response({
+            'error': 'Invalid activation link or token expired.'
+        }, status=status.HTTP_400_BAD_REQUEST)
 
 
 def create_login_response(user):

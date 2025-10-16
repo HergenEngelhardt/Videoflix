@@ -9,12 +9,15 @@ WORKDIR /app
 COPY . .
 
 RUN apk update && \
-    apk add --no-cache --upgrade bash dos2unix && \
+    apk add --no-cache --upgrade bash && \
     apk add --no-cache postgresql-client ffmpeg && \
     apk add --no-cache --virtual .build-deps gcc musl-dev postgresql-dev && \
     pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt && \
     apk del .build-deps && \
-    chmod +x backend.entrypoint.sh
+    apk add --no-cache dos2unix && \
+    find . -type f -name "*.sh" -exec dos2unix {} \; && \
+    find . -type f -name "*.sh" -exec chmod +x {} \; && \
+    apk del dos2unix
 
 EXPOSE 8000

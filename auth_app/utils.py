@@ -20,6 +20,7 @@ def generate_activation_link(user):
     Returns complete frontend URL for account activation process."""
     token = default_token_generator.make_token(user)
     uid = urlsafe_base64_encode(force_bytes(user.pk))
+    # Frontend activation page that will call the API
     return f"{settings.FRONTEND_URL}/pages/auth/activate.html?uid={uid}&token={token}"
 
 
@@ -47,14 +48,20 @@ def send_activation_email_task(user_email, html_content, activation_link):
         email.attach_alternative(html_content, "text/html")
         email.mixed_subtype = 'related'
         
-        logo_path = settings.BASE_DIR / 'static' / 'emails' / 'img' / 'logo_videoflix.svg'
+        logo_path = settings.BASE_DIR / 'auth_app' / 'templates' / 'static' / 'images' / 'logo_videoflix.png'
+        print(f"Looking for PNG logo at: {logo_path}")
+        
         if logo_path.exists():
+            print(f"Found PNG logo: {logo_path}")
             with open(logo_path, 'rb') as logo_file:
                 logo_data = logo_file.read()
-                image = MIMEImage(logo_data, 'svg+xml')
+                image = MIMEImage(logo_data, 'png')
                 image.add_header('Content-ID', '<logo_videoflix>')
-                image.add_header('Content-Disposition', 'inline', filename='logo_videoflix.svg')
+                image.add_header('Content-Disposition', 'inline', filename='logo_videoflix.png')
                 email.attach(image)
+                print("PNG logo attached successfully")
+        else:
+            print(f"PNG logo not found at {logo_path}")
         
         result = email.send()
         print(f"Activation email sent successfully to {user_email}: {result}")
