@@ -356,3 +356,37 @@ def create_default_thumbnail(video_instance):
     except Exception as e:
         logger.error(f"Failed to create default thumbnail for video ID {video_instance.id}: {str(e)}")
         return False
+
+
+import uuid
+from django.core.exceptions import ValidationError
+
+
+def validate_video_size(file):
+    """Ensures that the uploaded video file is no larger than 100 MB."""
+    max_size = 100.5 * 1024 * 1024  
+    if file.size > max_size:
+        raise ValidationError(f'Die Datei ist zu groß. Maximum: 100MB, Aktuell: {file.size / 1024 / 1024:.2f}MB')
+
+
+def video_upload_path(instance, filename):
+    """Generates the file path where videos will be uploaded."""
+    return f'videos/original/{instance.id}/{filename}'
+
+
+def thumbnail_upload_path(instance, filename):
+    """Generates the file path where thumbnail images will be uploaded."""
+    identifier = instance.id if instance.id else uuid.uuid4().hex
+    return f'videos/thumbnails/{identifier}/{filename}'
+
+
+def queue_video_processing(video_instance):
+    """Queue video for background processing (thumbnail generation and HLS conversion)."""
+    try:
+        import django_rq
+        queue = django_rq.get_queue('default')
+        queue.enqueue('video_app.utils.process_video_with_thumbnail', video_instance.id)
+        logger.info(f"Video {video_instance.id} queued for processing")
+    except Exception as e:
+        logger.error(f"Failed to queue video {video_instance.id} for processing: {str(e)}")
+        process_video_with_thumbnail(video_instance)

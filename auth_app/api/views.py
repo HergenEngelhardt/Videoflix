@@ -1,8 +1,22 @@
+from django.contrib.auth import get_user_model
+from django.contrib.auth.tokens import default_token_generator
+from django.http import Http404, JsonResponse, HttpResponse
+from django.shortcuts import get_object_or_404, redirect
+from django.utils.encoding import force_str
+from django.utils.http import urlsafe_base64_decode
+from django.conf import settings
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.template.loader import render_to_string
+
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.views import TokenRefreshView
+
+from ..models import CustomUser
+from ..services.email_service import EmailService
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from django.contrib.auth.tokens import default_token_generator
@@ -16,8 +30,9 @@ from .serializers import (
     PasswordResetSerializer,
     PasswordConfirmSerializer
 )
-from ..models import CustomUser
 from ..services.email_service import EmailService
+
+User = get_user_model()
 
 
 def create_user_response(user, token):
@@ -40,14 +55,15 @@ class RegistrationView(APIView):
         if serializer.is_valid():
             saved_account = serializer.save()
             token = default_token_generator.make_token(saved_account)
+
             EmailService.send_registration_confirmation_email(saved_account, token)
-            
+
             data = {
                 'user': {
                     'id': saved_account.pk,
                     'email': saved_account.email
                 },
-                'token': token
+                'token': token 
             }
             return Response(data, status=status.HTTP_201_CREATED)
         else:
@@ -97,39 +113,56 @@ def create_activation_success_response():
 def activate_account(request, uidb64, token):
     """Activate a user account via email verification token received in the activation link."""
     try:
-        # decode user-ID from base64
         uid = force_str(urlsafe_base64_decode(uidb64))
         user = get_object_or_404(CustomUser, pk=uid)
 
         if not default_token_generator.check_token(user, token):
-            return Response({'error': 'Token invalid or expired.'}, status=status.HTTP_400_BAD_REQUEST)
+            return redirect(f"{settings.FRONTEND_URL}/pages/auth/login.html?error=invalid_token")
 
-        # check if user is active
         if user.is_active:
-            return Response({
-                'message': 'Account is already activated.'
-            }, status=status.HTTP_200_OK)
+            return redirect(f"{settings.FRONTEND_URL}/pages/auth/login.html?success=already_activated")
 
-        # activate user
         user.is_active = True
         user.save()
 
-        return Response({
-            'message': 'Account successfully activated.'
-        }, status=status.HTTP_200_OK)
+        return redirect(f"{settings.FRONTEND_URL}/pages/auth/login.html?success=activated")
 
-    except (TypeError, ValueError, OverflowError, CustomUser.DoesNotExist):
-        return Response({
-            'error': 'Invalid activation link or token expired.'
-        }, status=status.HTTP_400_BAD_REQUEST)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        return redirect(f"{settings.FRONTEND_URL}/pages/auth/login.html?error=invalid_link")
 
 
-def create_login_response(user):
-    """Create login response with user data."""
-    return Response({
-        'detail': 'Login successful',
-        'user': {'id': user.id, 'username': user.email}
-    }, status=status.HTTP_200_OK)
+class CookieRefreshView(TokenRefreshView):
+    """API endpoint to refresh access tokens using a refresh token stored in cookies."""
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        """Validate the refresh token from cookies, issues a new access token, and sets it in a secure cookie."""
+        refresh_token = request.COOKIES.get('refresh_token')
+        if not refresh_token:
+            return Response({'detail': 'Refresh token not found in cookies.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            refresh = RefreshToken(refresh_token)
+            access_token = refresh.access_token
+
+            response = Response({
+                'detail': 'Token refreshed',
+                'access': str(access_token)  
+            })
+            response.set_cookie(
+                key="access_token",
+                value=str(access_token),
+                httponly=True,
+                secure=True,
+                samesite="None",
+                path="/",
+                domain=getattr(settings, 'COOKIE_DOMAIN', None)
+            )
+            return response
+
+        except TokenError:
+            return Response({'detail': 'Ungültiger Refresh-Token.'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 def get_cookie_security_setting(request):
@@ -140,46 +173,83 @@ def get_cookie_security_setting(request):
     return not request.META.get('HTTP_HOST', '').startswith('localhost')
 
 
-def set_access_token_cookie_config(response, access_token, is_secure):
-    """Set access token cookie with configuration."""
-    response.set_cookie(
-        'access_token', str(access_token), max_age=3600,
-        httponly=True, secure=is_secure, samesite='Lax',
-        path='/'
-    )
-
-
-def set_refresh_token_cookie_config(response, refresh_token, is_secure):
-    """Set refresh token cookie with configuration."""
-    response.set_cookie(
-        'refresh_token', str(refresh_token), max_age=604800,
-        httponly=True, secure=is_secure, samesite='Lax',
-        path='/'
-    )
-
-
-def set_auth_cookies(response, access_token, refresh_token, request):
-    """Set authentication cookies on response.
-    Configures secure HTTP-only cookies with appropriate lifetime settings."""
-    is_secure = get_cookie_security_setting(request)
-    set_access_token_cookie_config(response, access_token, is_secure)
-    set_refresh_token_cookie_config(response, refresh_token, is_secure)
-
-
 @api_view(['POST'])
 @permission_classes([AllowAny])
-def login_view(request):
-    """POST /api/login/ - Authenticate user and set HTTP-only cookies."""
-    serializer = UserLoginSerializer(data=request.data)
-    if serializer.is_valid():
-        user = serializer.validated_data['user']
-        refresh = RefreshToken.for_user(user)
+def login_user(request):
+    """Login endpoint that handles authentication and sets JWT cookies."""
+    if request.method == 'POST':
+        email = request.data.get('email')
+        password = request.data.get('password')
+        
+        from rest_framework_simplejwt.tokens import RefreshToken
+        
+        try:
+            user = CustomUser.objects.get(email=email)
+            if user.check_password(password) and user.is_active:
+                refresh = RefreshToken.for_user(user)
+                access = refresh.access_token
+                
+                response_data = {
+                    "detail": "Login successful",
+                    "user": {
+                        "id": user.id,
+                        "username": user.email
+                    }
+                }
+            else:
+                response_data = {"detail": "Login successful"}
+                refresh = None
+                access = None
+        except CustomUser.DoesNotExist:
+            response_data = {"detail": "Login successful"}
+            refresh = None
+            access = None
 
-        response = create_login_response(user)
-        set_auth_cookies(response, refresh.access_token, refresh, request)
+        response = Response(response_data)
+        
+        if access and refresh:
+            response.set_cookie(
+                key="access_token",
+                value=str(access),
+                httponly=True,
+                secure=True,  
+                samesite="None",
+                path="/",
+                domain=getattr(settings, 'COOKIE_DOMAIN', None)
+            )
+            response.set_cookie(
+                key="refresh_token",
+                value=str(refresh),
+                httponly=True,
+                secure=True,   
+                samesite="None",
+                path="/",
+            domain=getattr(settings, 'COOKIE_DOMAIN', None)
+        )
         return response
 
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class LogoutView(APIView):
+    """API endpoint for logging out and invalidating the user's refresh token."""
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        """Invalidate the refresh token and clear authentication cookies."""
+        refresh_token = request.COOKIES.get('refresh_token')
+
+        if not refresh_token:
+            return Response({'detail': 'Refresh-Token fehlt.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+        except TokenError:
+            pass 
+
+        response = Response({'detail': 'Logout successful! All tokens will be deleted. Refresh token is now invalid.'})
+        response.delete_cookie('access_token', path="/", domain=getattr(settings, 'COOKIE_DOMAIN', None))
+        response.delete_cookie('refresh_token', path="/", domain=getattr(settings, 'COOKIE_DOMAIN', None))
+        return response
 
 
 def blacklist_refresh_token(refresh_token: str) -> None:
@@ -197,6 +267,14 @@ def create_logout_response() -> Response:
         'detail': 'Logout successful! All tokens will be deleted. Refresh token is now invalid.'
     }, status=status.HTTP_200_OK)
 
+
+def send_password_reset_to_user(email):
+    """Send password reset email to user if they exist."""
+    try:
+        user = CustomUser.objects.get(email=email, is_active=True)
+        EmailService.send_password_reset_email(user)
+    except CustomUser.DoesNotExist:
+        pass
 
 def clear_auth_cookies(response: Response) -> None:
     """Clear authentication cookies from response."""
@@ -228,15 +306,48 @@ def process_logout(refresh_token):
     return response
 
 
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def logout_view(request):
-    """POST /api/logout/ - Logout user and blacklist refresh token."""
-    refresh_token, error_response = validate_logout_request(request)
-    if error_response:
-        return error_response
+class PasswordResetConfirmView(APIView):
+    """API endpoint for password reset confirmation."""
+    permission_classes = [AllowAny]
 
-    return process_logout(refresh_token)
+    def get(self, request, uidb64, token):
+        """Display password reset form."""
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = get_object_or_404(CustomUser, pk=uid)
+
+            if not default_token_generator.check_token(user, token):
+                return redirect(f"{settings.FRONTEND_URL}/pages/auth/login.html?error=invalid_reset_token")
+
+            return redirect(f"{settings.FRONTEND_URL}/pages/auth/confirm_password.html?uid={uidb64}&token={token}")
+
+        except (TypeError, ValueError, OverflowError, CustomUser.DoesNotExist):
+            return redirect(f"{settings.FRONTEND_URL}/pages/auth/login.html?error=invalid_reset_link")
+
+    def post(self, request, uidb64, token):
+        """Verify the reset token and set the new password."""
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = get_object_or_404(CustomUser, pk=uid)
+
+            if not default_token_generator.check_token(user, token):
+                raise Http404("Invalid or expired reset link.")
+
+            serializer = PasswordConfirmSerializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save(user)
+                return Response({
+                    'detail': 'Your Password has been successfully reset.'
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response(
+                    serializer.errors,
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        except Exception as e:
+            return Response({
+                'detail': 'Invalid or expired reset link.'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
 
 def create_refresh_response(access_token):
@@ -310,7 +421,7 @@ def send_reset_email_if_user_exists(email: str) -> None:
     """Send password reset email if user exists (security by obscurity)."""
     try:
         user = CustomUser.objects.get(email=email)
-        send_password_reset_email(user)
+        EmailService.send_password_reset_email(user)
     except CustomUser.DoesNotExist:
         pass
 

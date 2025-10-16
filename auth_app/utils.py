@@ -20,7 +20,6 @@ def generate_activation_link(user):
     Returns complete frontend URL for account activation process."""
     token = default_token_generator.make_token(user)
     uid = urlsafe_base64_encode(force_bytes(user.pk))
-    # Frontend activation page that will call the API
     return f"{settings.FRONTEND_URL}/pages/auth/activate.html?uid={uid}&token={token}"
 
 

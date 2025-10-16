@@ -20,10 +20,10 @@ class EmailService:
 
     @staticmethod
     def send_password_reset_email(user):
-        """Send password reset email with link to frontend page."""
+        """Send password reset email with link to backend API endpoint."""
         token = default_token_generator.make_token(user)
         uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
-        reset_url = f"{settings.FRONTEND_URL}/frontend/pages/auth/confirm_password.html?uid={uidb64}&token={token}"
+        reset_url = f"http://localhost:8000/api/password_confirm/{uidb64}/{token}/"
 
         site_name = getattr(settings, 'SITE_NAME', 'Videoflix')
 
@@ -42,9 +42,9 @@ class EmailService:
 
     @staticmethod
     def send_registration_confirmation_email(user, token):
-        """Send account activation email with link to frontend page."""
+        """Send account activation email with link to backend API endpoint."""
         uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
-        confirmation_url = f"{settings.FRONTEND_URL}/frontend/pages/auth/activate.html?uid={uidb64}&token={token}"
+        confirmation_url = f"http://localhost:8000/api/activate/{uidb64}/{token}/"
 
         context = {
             'user': user,
@@ -67,17 +67,15 @@ class EmailService:
         Uses HTML version if available, otherwise falls back silently to text.
         """
         try:
-            # Text version is required
-            message = render_to_string(f'auth_app/emails/{template_name}.txt', context=context)
+            message = render_to_string(f'{template_name}.txt', context=context)
         except TemplateDoesNotExist:
             logger.error(f"Required text template '{template_name}.txt' not found. Email not sent.")
             raise
 
-        # HTML version is optional
         try:
             html_message = render_to_string(f'auth_app/emails/{template_name}.html', context=context)
         except TemplateDoesNotExist:
-            html_message = None  # Silent fallback to text only
+            html_message = None  
 
         try:
             send_mail(
