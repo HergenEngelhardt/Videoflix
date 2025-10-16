@@ -35,8 +35,12 @@ services:
       - db
       - redis
 
+
+
+
 volumes:
   postgres_data:
   redis_data:
   videoflix_media:
   videoflix_static:
+    driver: bridge
