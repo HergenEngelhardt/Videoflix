@@ -9,7 +9,7 @@ WORKDIR /app
 COPY . .
 
 RUN apk update && \
-    apk add --no-cache --upgrade bash && \
+    apk add --no-cache --upgrade bash dos2unix && \
     apk add --no-cache postgresql-client ffmpeg && \
     apk add --no-cache --virtual .build-deps gcc musl-dev postgresql-dev && \
     pip install --upgrade pip && \
@@ -18,5 +18,3 @@ RUN apk update && \
     chmod +x backend.entrypoint.sh
 
 EXPOSE 8000
-
-ENTRYPOINT [ "./backend.entrypoint.sh" ]
