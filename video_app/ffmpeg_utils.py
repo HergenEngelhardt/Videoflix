@@ -209,20 +209,48 @@ def get_video_file_info(video_path: str) -> Dict[str, Any]:
 def build_thumbnail_command(video_path: str, output_path: str, timestamp: str) -> List[str]:
     """Build FFmpeg command for thumbnail generation."""
     return [
-        'ffmpeg', '-i', video_path, '-ss', timestamp, '-vframes', '1',
-        '-vf', 'scale=320:180', output_path, '-y'
+        'ffmpeg', 
+        '-i', video_path, 
+        '-ss', timestamp, 
+        '-vframes', '1',
+        '-vf', 'scale=320:180:force_original_aspect_ratio=decrease,pad=320:180:(ow-iw)/2:(oh-ih)/2',
+        '-q:v', '2',  
+        '-f', 'image2',
+        output_path, 
+        '-y'
     ]
 
 
 def execute_thumbnail_generation(command: List[str], output_path: str) -> bool:
     """Execute thumbnail generation command."""
-    result = subprocess.run(command, capture_output=True, text=True)
+    try:
+        result = subprocess.run(
+            command, 
+            capture_output=True, 
+            text=True, 
+            timeout=30  
+        )
 
-    if result.returncode == 0 and os.path.exists(output_path):
-        logger.info(f"Generated thumbnail: {output_path}")
-        return True
-    else:
-        logger.error(f"Failed to generate thumbnail: {result.stderr}")
+        if result.returncode == 0 and os.path.exists(output_path):
+            if os.path.getsize(output_path) > 0:
+                logger.info(f"Generated thumbnail: {output_path}")
+                return True
+            else:
+                logger.error(f"Generated thumbnail is empty: {output_path}")
+                return False
+        else:
+            logger.error(f"Failed to generate thumbnail. Return code: {result.returncode}")
+            if result.stderr:
+                logger.error(f"FFmpeg stderr: {result.stderr}")
+            if result.stdout:
+                logger.info(f"FFmpeg stdout: {result.stdout}")
+            return False
+            
+    except subprocess.TimeoutExpired:
+        logger.error(f"Thumbnail generation timed out for: {output_path}")
+        return False
+    except Exception as e:
+        logger.error(f"Exception during thumbnail generation: {str(e)}")
         return False
 
 

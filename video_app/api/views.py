@@ -137,3 +137,152 @@ def hls_segment_view(request, movie_id, resolution, segment):
     return HttpResponse(
         content, content_type='video/MP2T', status=status.HTTP_200_OK
     )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def upload_thumbnail_view(request, video_id):
+    """
+    POST /api/video/<video_id>/thumbnail/
+    Upload a custom thumbnail for a video.
+    """
+    try:
+        video = get_object_or_404(Video, id=video_id)
+        
+        from .serializers import ThumbnailUploadSerializer
+        serializer = ThumbnailUploadSerializer(data=request.data)
+        
+        if not serializer.is_valid():
+            return Response(
+                {'error': 'Invalid data', 'details': serializer.errors}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        thumbnail_file = serializer.validated_data['thumbnail']
+        
+        if video.thumbnail:
+            video.thumbnail.delete(save=False)
+        
+        video.thumbnail = thumbnail_file
+        video.save()
+        
+        from .serializers import VideoListSerializer
+        video_serializer = VideoListSerializer(video, context={'request': request})
+        
+        return Response({
+            'message': 'Thumbnail uploaded successfully.',
+            'video': video_serializer.data
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response(
+            {'error': f'Upload error: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def regenerate_thumbnail_view(request, video_id):
+    """
+    POST /api/video/<video_id>/regenerate-thumbnail/
+    Regenerate thumbnail for a video from the video file.
+    """
+    try:
+        video = get_object_or_404(Video, id=video_id)
+        
+        if not video.video_file:
+            return Response(
+                {'error': 'No video file available.'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        from ..utils import queue_video_processing
+        import django_rq
+        
+        try:
+            queue = django_rq.get_queue('default')
+            job = queue.enqueue('video_app.utils.regenerate_thumbnail_job', video.id)
+            
+            return Response({
+                'message': 'Thumbnail regeneration started.',
+                'job_id': job.id
+            }, status=status.HTTP_202_ACCEPTED)
+            
+        except Exception as queue_error:
+            from ..utils import generate_video_thumbnail_for_instance
+            
+            if video.thumbnail:
+                video.thumbnail.delete(save=False)
+            
+            success = generate_video_thumbnail_for_instance(video)
+            
+            if success:
+                from .serializers import VideoListSerializer
+                serializer = VideoListSerializer(video, context={'request': request})
+                
+                return Response({
+                    'message': 'Thumbnail regenerated successfully.',
+                    'video': serializer.data
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response(
+                    {'error': 'Thumbnail generation failed.'}, 
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+        
+    except Exception as e:
+        return Response(
+            {'error': f'Regeneration error: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def video_status_view(request, video_id):
+    """
+    GET /api/video/<video_id>/status/
+    Get processing status for a video (thumbnail and HLS conversion).
+    """
+    try:
+        video = get_object_or_404(Video, id=video_id)
+        
+        has_thumbnail = bool(video.thumbnail and video.thumbnail.name)
+        thumbnail_url = None
+        
+        if has_thumbnail:
+            try:
+                if hasattr(video.thumbnail, 'path') and os.path.exists(video.thumbnail.path):
+                    thumbnail_url = request.build_absolute_uri(video.thumbnail.url)
+                else:
+                    has_thumbnail = False
+            except:
+                has_thumbnail = False
+        
+        from ..utils import check_conversion_status
+        hls_status = check_conversion_status(video)
+        
+        return Response({
+            'video_id': video.id,
+            'title': video.title,
+            'has_video_file': bool(video.video_file),
+            'thumbnail': {
+                'has_thumbnail': has_thumbnail,
+                'thumbnail_url': thumbnail_url,
+            },
+            'hls': {
+                'is_processed': hls_status['is_processed'],
+                'progress': hls_status['progress'],
+                'available_resolutions': hls_status['available_resolutions'],
+                'total_resolutions': hls_status['total_resolutions'],
+            },
+            'created_at': video.created_at,
+            'updated_at': video.updated_at
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response(
+            {'error': f'Status check error: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

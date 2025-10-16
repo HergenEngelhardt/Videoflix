@@ -129,12 +129,40 @@ def process_video_with_thumbnail(video_instance):
     from django.conf import settings
     
     try:
-        if video_instance.video_file and not video_instance.thumbnail:
-            thumbnail_success = generate_video_thumbnail_for_instance(video_instance)
-            if thumbnail_success:
-                logger.info(f"Thumbnail generated for video ID {video_instance.id}")
-            else:
-                logger.warning(f"Failed to generate thumbnail for video ID {video_instance.id}")
+        thumbnail_success = False
+        
+        if video_instance.video_file:
+            should_generate_thumbnail = True
+            
+            if video_instance.thumbnail and video_instance.thumbnail.name:
+                try:
+                    if hasattr(video_instance.thumbnail, 'path') and os.path.exists(video_instance.thumbnail.path):
+                        if os.path.getsize(video_instance.thumbnail.path) > 0:
+                            should_generate_thumbnail = False
+                            thumbnail_success = True
+                            logger.info(f"Valid thumbnail already exists for video ID {video_instance.id}")
+                except Exception:
+                    should_generate_thumbnail = True
+            
+            if should_generate_thumbnail:
+                max_retries = 3
+                for attempt in range(1, max_retries + 1):
+                    logger.info(f"Thumbnail generation attempt {attempt}/{max_retries} for video ID {video_instance.id}")
+                    thumbnail_success = generate_video_thumbnail_for_instance(video_instance)
+                    
+                    if thumbnail_success:
+                        logger.info(f"Thumbnail generated successfully on attempt {attempt} for video ID {video_instance.id}")
+                        break
+                    else:
+                        logger.warning(f"Thumbnail generation attempt {attempt} failed for video ID {video_instance.id}")
+                        if attempt < max_retries:
+                            import time
+                            time.sleep(2) 
+                
+                if not thumbnail_success:
+                    logger.error(f"Failed to generate thumbnail after {max_retries} attempts for video ID {video_instance.id}")
+                    logger.info(f"Attempting to create default thumbnail for video ID {video_instance.id}")
+                    thumbnail_success = create_default_thumbnail(video_instance)
         
         from .hls_utils import convert_video_to_hls
         hls_success = convert_video_to_hls(video_instance)
@@ -144,7 +172,7 @@ def process_video_with_thumbnail(video_instance):
         else:
             logger.error(f"HLS conversion failed for video ID {video_instance.id}")
             
-        return hls_success
+        return hls_success and thumbnail_success
         
     except Exception as e:
         logger.error(f"Error in complete video processing for ID {video_instance.id}: {str(e)}")
@@ -167,35 +195,164 @@ def generate_video_thumbnail_for_instance(video_instance):
             
         video_path = video_instance.video_file.path
         
+        if not os.path.exists(video_path):
+            logger.error(f"Video file does not exist: {video_path} for video ID {video_instance.id}")
+            return False
+            
+        if not os.access(video_path, os.R_OK):
+            logger.error(f"Video file not readable: {video_path} for video ID {video_instance.id}")
+            return False
+        
         video_name = os.path.splitext(os.path.basename(video_path))[0]
         thumbnail_filename = f"{video_name}_thumbnail.jpg"
         
         temp_thumbnail_path = os.path.join(settings.MEDIA_ROOT, 'temp', thumbnail_filename)
         os.makedirs(os.path.dirname(temp_thumbnail_path), exist_ok=True)
         
-        success = generate_video_thumbnail(video_path, temp_thumbnail_path, "00:00:10")
+        timestamps = ["00:00:10", "00:00:05", "00:00:02", "00:00:01"]
+        success = False
         
-        if success and os.path.exists(temp_thumbnail_path):
-            with open(temp_thumbnail_path, 'rb') as f:
-                thumbnail_content = f.read()
-            
-            video_instance.thumbnail.save(
-                thumbnail_filename,
-                ContentFile(thumbnail_content),
-                save=True
-            )
-            
+        for timestamp in timestamps:
+            logger.info(f"Attempting thumbnail generation at {timestamp} for video ID {video_instance.id}")
+            success = generate_video_thumbnail(video_path, temp_thumbnail_path, timestamp)
+            if success and os.path.exists(temp_thumbnail_path):
+                if os.path.getsize(temp_thumbnail_path) > 0:
+                    logger.info(f"Successfully generated thumbnail at {timestamp} for video ID {video_instance.id}")
+                    break
+                else:
+                    logger.warning(f"Empty thumbnail file generated at {timestamp} for video ID {video_instance.id}")
+                    success = False
+            else:
+                logger.warning(f"Failed to generate thumbnail at {timestamp} for video ID {video_instance.id}")
+        
+        if success and os.path.exists(temp_thumbnail_path) and os.path.getsize(temp_thumbnail_path) > 0:
             try:
-                os.remove(temp_thumbnail_path)
-            except:
-                pass
+                with open(temp_thumbnail_path, 'rb') as f:
+                    thumbnail_content = f.read()
                 
-            logger.info(f"Thumbnail saved for video ID {video_instance.id}")
+                if len(thumbnail_content) == 0:
+                    logger.error(f"Thumbnail file is empty for video ID {video_instance.id}")
+                    return False
+                
+                video_instance.thumbnail.save(
+                    thumbnail_filename,
+                    ContentFile(thumbnail_content),
+                    save=True
+                )
+                
+                logger.info(f"Thumbnail saved successfully for video ID {video_instance.id}")
+                
+            except Exception as save_error:
+                logger.error(f"Failed to save thumbnail to database for video ID {video_instance.id}: {str(save_error)}")
+                return False
+            finally:
+                try:
+                    if os.path.exists(temp_thumbnail_path):
+                        os.remove(temp_thumbnail_path)
+                except Exception as cleanup_error:
+                    logger.warning(f"Failed to cleanup temp thumbnail for video ID {video_instance.id}: {str(cleanup_error)}")
+                
             return True
         else:
-            logger.error(f"Failed to generate thumbnail file for video ID {video_instance.id}")
+            logger.error(f"Failed to generate thumbnail file for video ID {video_instance.id} after trying all timestamps")
             return False
             
     except Exception as e:
         logger.error(f"Error generating thumbnail for video ID {video_instance.id}: {str(e)}")
+        return False
+
+
+def regenerate_thumbnail_job(video_id):
+    """
+    Job function for asynchronous thumbnail regeneration.
+    This function is called by django-rq for background processing.
+    """
+    try:
+        from .models import Video
+        
+        video = Video.objects.get(id=video_id)
+        
+        if video.thumbnail:
+            video.thumbnail.delete(save=False)
+        
+        success = generate_video_thumbnail_for_instance(video)
+        
+        if success:
+            logger.info(f"Thumbnail regeneration successful for video ID {video_id}")
+        else:
+            logger.error(f"Thumbnail regeneration failed for video ID {video_id}")
+            success = create_default_thumbnail(video)
+        
+        return success
+        
+    except Exception as e:
+        logger.error(f"Error in thumbnail regeneration job for video ID {video_id}: {str(e)}")
+        return False
+
+
+def create_default_thumbnail(video_instance):
+    """
+    Create a default thumbnail for videos where automatic generation fails.
+    This creates a simple colored placeholder image with the video title.
+    """
+    try:
+        try:
+            from PIL import Image, ImageDraw, ImageFont
+        except ImportError:
+            logger.error("Pillow not available for default thumbnail generation")
+            return False
+            
+        from django.core.files.base import ContentFile
+        import io
+        
+        img = Image.new('RGB', (320, 180), color=(45, 45, 45))
+        draw = ImageDraw.Draw(img)
+        
+        try:
+            font = ImageFont.truetype("arial.ttf", 24)
+            small_font = ImageFont.truetype("arial.ttf", 16)
+        except:
+            try:
+                font = ImageFont.load_default()
+                small_font = ImageFont.load_default()
+            except:
+                font = None
+                small_font = None
+        
+        title_text = video_instance.title[:30] + "..." if len(video_instance.title) > 30 else video_instance.title
+        
+        if font:
+            bbox = draw.textbbox((0, 0), title_text, font=font)
+            text_width = bbox[2] - bbox[0]
+            text_height = bbox[3] - bbox[1]
+            
+            x = (320 - text_width) // 2
+            y = (180 - text_height) // 2 - 10
+            
+            draw.text((x + 2, y + 2), title_text, fill=(0, 0, 0), font=font)  
+            draw.text((x, y), title_text, fill=(255, 255, 255), font=font)    
+            
+            if small_font:
+                label_bbox = draw.textbbox((0, 0), "VIDEO", font=small_font)
+                label_width = label_bbox[2] - label_bbox[0]
+                label_x = (320 - label_width) // 2
+                draw.text((label_x, y + text_height + 10), "VIDEO", fill=(150, 150, 150), font=small_font)
+        
+        img_buffer = io.BytesIO()
+        img.save(img_buffer, format='JPEG', quality=85)
+        img_buffer.seek(0)
+        
+        filename = f"default_thumbnail_{video_instance.id}.jpg"
+        
+        video_instance.thumbnail.save(
+            filename,
+            ContentFile(img_buffer.read()),
+            save=True
+        )
+        
+        logger.info(f"Default thumbnail created for video ID {video_instance.id}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Failed to create default thumbnail for video ID {video_instance.id}: {str(e)}")
         return False
