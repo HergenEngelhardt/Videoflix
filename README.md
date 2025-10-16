@@ -6,17 +6,17 @@ I built this because I wanted to learn how modern video streaming platforms work
 
 ## What can my app do?
 
-✅ **User Management** - Secure registration, login, and profile management  
-✅ **Video Upload** - Upload videos in various formats  
-✅ **Automatic Processing** - FFmpeg converts videos to HLS streaming format  
-✅ **Multi-Resolution Streaming** - 120p to 1080p adaptive streaming  
-✅ **Category Management** - Organize videos by categories  
-✅ **Thumbnail Generation** - Automatic video thumbnails  
-✅ **JWT Authentication** - Secure token-based authentication  
-✅ **Email Verification** - Account activation and password reset emails  
-✅ **Redis Caching** - Fast performance with Redis  
-✅ **Admin Interface** - Full Django admin for content management  
-✅ **Responsive API** - RESTful API for frontend integration  
+ **User Management** - Secure registration, login, and profile management  
+ **Video Upload** - Upload videos in various formats  
+ **Automatic Processing** - FFmpeg converts videos to HLS streaming format  
+ **Multi-Resolution Streaming** - 120p to 1080p adaptive streaming  
+ **Category Management** - Organize videos by categories  
+ **Thumbnail Generation** - Automatic video thumbnails  
+ **JWT Authentication** - Secure token-based authentication  
+ **Email Verification** - Account activation and password reset emails  
+ **Redis Caching** - Fast performance with Redis  
+ **Admin Interface** - Full Django admin for content management  
+ **Responsive API** - RESTful API for frontend integration  
 
 ## What I used (my tech stack)
 
@@ -116,8 +116,8 @@ cd Videoflix
 ### 2. Set up environment variables
 Create a `.env` file in the project root:
 ```bash
-# Copy the example if available, or create new .env file
-cp .env.example .env
+# Copy the template file to create your .env file
+cp .env.template .env
 ```
 
 Add the following to your `.env` file:
@@ -186,17 +186,18 @@ docker-compose ps
    - `videoflix_database` (PostgreSQL)
    - `videoflix_redis` (Redis cache)
 
-#### Initial database setup
-```powershell
-# Run database migrations
-docker-compose exec web python manage.py migrate
+#### Database and Admin Setup
+The Docker setup handles everything automatically:
+- Database migrations are run automatically
+- Admin superuser is created automatically (using .env variables)
+- Static files are collected automatically
 
-# Create admin user
-docker-compose exec web python manage.py createsuperuser
+**Your admin credentials (from .env file):**
+- Username: `admin`
+- Password: `adminpassword`
+- Email: `admin@example.com`
 
-# Create some test categories (optional)
-docker-compose exec web python manage.py shell
-```
+Access the admin at: http://localhost:8000/admin/
 
 #### The app will run at:
 - **API:** http://127.0.0.1:8000/api/

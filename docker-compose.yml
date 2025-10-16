@@ -43,4 +43,3 @@ volumes:
   redis_data:
   videoflix_media:
   videoflix_static:
-    driver: bridge
