@@ -41,6 +41,8 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:3000", 
     "http://localhost:4200",
     "http://127.0.0.1:4200",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
 ]
 
 # Allow additional CSRF origins from environment
@@ -237,6 +239,8 @@ else:
         "http://127.0.0.1:3000",
         "http://localhost:4200",  # Angular dev server
         "http://127.0.0.1:4200",
+        "http://localhost:8000",  # Backend self
+        "http://127.0.0.1:8000",
     ]
 
     # Allow additional origins from environment
@@ -308,7 +312,8 @@ RQ_QUEUES = {
 }
 
 # Frontend URL for email links
-FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:4200')
+SITE_URL = os.environ.get('SITE_URL', 'http://localhost:5500')
+SITE_NAME = os.environ.get('SITE_NAME', 'Videoflix')
 
 # Custom User Model
 AUTH_USER_MODEL = 'auth_app.CustomUser'

@@ -13,8 +13,8 @@ class CategoryAdmin(admin.ModelAdmin):
 @admin.register(Video)
 class VideoAdmin(admin.ModelAdmin):
     """Admin configuration for Video model."""
-    list_display = ('title', 'category', 'has_thumbnail', 'hls_processed', 'created_at')
-    list_filter = ('category', 'hls_processed', 'created_at')
+    list_display = ('title', 'category', 'has_thumbnail', 'created_at')
+    list_filter = ('category', 'created_at')
     search_fields = ('title', 'description')
     ordering = ('-created_at',)
     readonly_fields = ('created_at', 'updated_at', 'thumbnail_preview')

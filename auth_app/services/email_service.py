@@ -20,10 +20,10 @@ class EmailService:
 
     @staticmethod
     def send_password_reset_email(user):
-        """Send password reset email with link to backend API endpoint."""
+        """Send password reset email with link to frontend reset page."""
         token = default_token_generator.make_token(user)
         uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
-        reset_url = f"http://localhost:8000/api/password_confirm/{uidb64}/{token}/"
+        reset_url = f"{settings.SITE_URL}/pages/auth/confirm_password.html?uid={uidb64}&token={token}"
 
         site_name = getattr(settings, 'SITE_NAME', 'Videoflix')
 
@@ -34,7 +34,7 @@ class EmailService:
         }
 
         EmailService._send_templated_email(
-            template_name='password_reset',
+            template_name='password_reset_email',
             subject='Passwort zurücksetzen',
             recipient=user.email,
             context=context
@@ -42,13 +42,13 @@ class EmailService:
 
     @staticmethod
     def send_registration_confirmation_email(user, token):
-        """Send account activation email with link to backend API endpoint."""
+        """Send account activation email with link to frontend activation page."""
         uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
-        confirmation_url = f"http://localhost:8000/api/activate/{uidb64}/{token}/"
+        activation_link = f"{settings.SITE_URL}/pages/auth/activate.html?uid={uidb64}&token={token}"
 
         context = {
             'user': user,
-            'confirmation_url': confirmation_url,
+            'activation_link': activation_link,
             'site_name': getattr(settings, 'SITE_NAME', 'Videoflix'),
         }
 
@@ -67,15 +67,17 @@ class EmailService:
         Uses HTML version if available, otherwise falls back silently to text.
         """
         try:
-            message = render_to_string(f'{template_name}.txt', context=context)
+            # Text version is required
+            message = render_to_string(f'auth_app/emails/{template_name}.txt', context=context)
         except TemplateDoesNotExist:
             logger.error(f"Required text template '{template_name}.txt' not found. Email not sent.")
             raise
 
+        # HTML version is optional
         try:
             html_message = render_to_string(f'auth_app/emails/{template_name}.html', context=context)
         except TemplateDoesNotExist:
-            html_message = None  
+            html_message = None  # Silent fallback to text only
 
         try:
             send_mail(

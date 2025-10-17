@@ -2,7 +2,7 @@ Willkommen bei {{ site_name }}, {{ user.get_full_name|default:user.username }}!
 
 Danke für Ihre Registrierung. Um Ihren Account zu aktivieren, bestätigen Sie bitte Ihre E-Mail-Adresse:
 
-{{ confirmation_url }}
+{{ activation_link }}
 
 Dieser Link ist 24 Stunden gültig.
 

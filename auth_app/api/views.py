@@ -117,18 +117,24 @@ def activate_account(request, uidb64, token):
         user = get_object_or_404(CustomUser, pk=uid)
 
         if not default_token_generator.check_token(user, token):
-            return redirect(f"{settings.FRONTEND_URL}/pages/auth/login.html?error=invalid_token")
+            return Response({'error': 'Token invalid or expired.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if user.is_active:
-            return redirect(f"{settings.FRONTEND_URL}/pages/auth/login.html?success=already_activated")
+            return Response({
+                'message': 'Account is already activated.'
+            }, status=status.HTTP_200_OK)
 
         user.is_active = True
         user.save()
 
-        return redirect(f"{settings.FRONTEND_URL}/pages/auth/login.html?success=activated")
+        return Response({
+            'message': 'Account successfully activated.'
+        }, status=status.HTTP_200_OK)
 
-    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-        return redirect(f"{settings.FRONTEND_URL}/pages/auth/login.html?error=invalid_link")
+    except (TypeError, ValueError, OverflowError, CustomUser.DoesNotExist):
+        return Response({
+            'error': 'Invalid activation link or token expired.'
+        }, status=status.HTTP_400_BAD_REQUEST)
 
 
 class CookieRefreshView(TokenRefreshView):
@@ -224,8 +230,8 @@ def login_user(request):
                 secure=True,   
                 samesite="None",
                 path="/",
-            domain=getattr(settings, 'COOKIE_DOMAIN', None)
-        )
+                domain=getattr(settings, 'COOKIE_DOMAIN', None)
+            )
         return response
 
 
