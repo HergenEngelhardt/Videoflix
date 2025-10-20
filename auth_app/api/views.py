@@ -111,30 +111,9 @@ def create_activation_success_response():
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def activate_account(request, uidb64, token):
-    """Activate a user account via email verification token received in the activation link."""
-    try:
-        uid = force_str(urlsafe_base64_decode(uidb64))
-        user = get_object_or_404(CustomUser, pk=uid)
-
-        if not default_token_generator.check_token(user, token):
-            return Response({'error': 'Token invalid or expired.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        if user.is_active:
-            return Response({
-                'message': 'Account is already activated.'
-            }, status=status.HTTP_200_OK)
-
-        user.is_active = True
-        user.save()
-
-        return Response({
-            'message': 'Account successfully activated.'
-        }, status=status.HTTP_200_OK)
-
-    except (TypeError, ValueError, OverflowError, CustomUser.DoesNotExist):
-        return Response({
-            'error': 'Invalid activation link or token expired.'
-        }, status=status.HTTP_400_BAD_REQUEST)
+    """Redirect to frontend activation page where initActivation() will handle the actual activation."""
+    # Redirect to frontend activate.html with the parameters so initActivation() can process them
+    return redirect(f"{settings.FRONTEND_URL}/pages/auth/activate.html?uid={uidb64}&token={token}")
 
 
 class CookieRefreshView(TokenRefreshView):
@@ -317,18 +296,9 @@ class PasswordResetConfirmView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request, uidb64, token):
-        """Display password reset form."""
-        try:
-            uid = force_str(urlsafe_base64_decode(uidb64))
-            user = get_object_or_404(CustomUser, pk=uid)
-
-            if not default_token_generator.check_token(user, token):
-                return redirect(f"{settings.FRONTEND_URL}/pages/auth/login.html?error=invalid_reset_token")
-
-            return redirect(f"{settings.FRONTEND_URL}/pages/auth/confirm_password.html?uid={uidb64}&token={token}")
-
-        except (TypeError, ValueError, OverflowError, CustomUser.DoesNotExist):
-            return redirect(f"{settings.FRONTEND_URL}/pages/auth/login.html?error=invalid_reset_link")
+        """Redirect to frontend password reset page where initPasswordReset() will handle validation."""
+        # Redirect to frontend confirm_password.html with the parameters so initPasswordReset() can process them
+        return redirect(f"{settings.FRONTEND_URL}/pages/auth/confirm_password.html?uid={uidb64}&token={token}")
 
     def post(self, request, uidb64, token):
         """Verify the reset token and set the new password."""

@@ -228,25 +228,26 @@ SIMPLE_JWT = {
 
 # CORS Settings
 # CORS Configuration for Frontend Integration
-if DEBUG:
-    # Allow all origins in development
-    CORS_ALLOW_ALL_ORIGINS = True
-else:
-    CORS_ALLOWED_ORIGINS = [
-        "http://localhost:5500",  # VS Code Live Server default
-        "http://127.0.0.1:5500", 
-        "http://localhost:3000",  # React/Vue dev server
-        "http://127.0.0.1:3000",
-        "http://localhost:4200",  # Angular dev server
-        "http://127.0.0.1:4200",
-        "http://localhost:8000",  # Backend self
-        "http://127.0.0.1:8000",
-    ]
+# Explicitly list common local origins (both localhost and 127.0.0.1 variants)
+# to avoid host-name mismatches between frontend and backend during dev.
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5500",  # VS Code Live Server default
+    "http://127.0.0.1:5500",
+    "http://localhost:3000",  # React/Vue dev server
+    "http://127.0.0.1:3000",
+    "http://localhost:4200",  # Angular dev server
+    "http://127.0.0.1:4200",
+    "http://localhost:8000",  # Backend self
+    "http://127.0.0.1:8000",
+]
 
-    # Allow additional origins from environment
-    if os.environ.get("CORS_ALLOWED_ORIGINS"):
-        additional_origins = os.environ.get("CORS_ALLOWED_ORIGINS").split(",")
-        CORS_ALLOWED_ORIGINS.extend(additional_origins)
+# Allow additional origins from environment
+if os.environ.get("CORS_ALLOWED_ORIGINS"):
+    additional_origins = os.environ.get("CORS_ALLOWED_ORIGINS").split(",")
+    CORS_ALLOWED_ORIGINS.extend(additional_origins)
+
+# Allow all origins in development for convenience; keep explicit list as well
+CORS_ALLOW_ALL_ORIGINS = DEBUG
 
 # Essential CORS settings
 CORS_ALLOW_CREDENTIALS = True  # Required for HttpOnly cookies
@@ -272,7 +273,7 @@ CORS_ALLOWED_METHODS = [
 
 # Email Settings
 # Prefer Maildev in development to capture emails locally
-USE_MAILDEV = os.environ.get('USE_MAILDEV', 'true' if DEBUG else 'false').lower() == 'true'
+USE_MAILDEV = os.environ.get('USE_MAILDEV', 'false' if DEBUG else 'false').lower() == 'true'
 
 if USE_MAILDEV:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -311,8 +312,9 @@ RQ_QUEUES = {
     }
 }
 
-# Frontend URL for email links
-SITE_URL = os.environ.get('SITE_URL', 'http://localhost:5500')
+# Frontend and Backend URLs for email links
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5500')
+BACKEND_URL = os.environ.get('BACKEND_URL', 'http://localhost:8000')
 SITE_NAME = os.environ.get('SITE_NAME', 'Videoflix')
 
 # Custom User Model

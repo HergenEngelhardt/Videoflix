@@ -3,7 +3,7 @@ Dear {{ user.email }},
 Thank you for registering with Videoflix.
 To complete your registration and verify your email address, please click the link below:
 
-[Activate your account]({{ activation_link }})
+[Activate your account]({{ confirmation_url }})
 
 If you did not create an account with us, please disregard this email.
 
