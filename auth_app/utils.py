@@ -26,42 +26,11 @@ def detect_frontend_path_prefix():
     if _frontend_path_prefix_cache is not None:
         return _frontend_path_prefix_cache
     
-    frontend_url = settings.FRONTEND_URL.rstrip('/')
-    
-    try:
-        import requests
-        
-        test_url_direct = f"{frontend_url}/shared/css/variables.css"
-        test_url_prefixed = f"{frontend_url}/frontend/shared/css/variables.css"
-        
-        try:
-            response = requests.head(test_url_direct, timeout=2)
-            if response.status_code == 200:
-                _frontend_path_prefix_cache = ''
-                logger.info("Auto-detected: Live Server running from frontend/ directory")
-                return ''
-        except requests.RequestException:
-            pass
-        
-        try:
-            response = requests.head(test_url_prefixed, timeout=2)
-            if response.status_code == 200:
-                _frontend_path_prefix_cache = 'frontend'
-                logger.info("Auto-detected: Live Server running from root directory")
-                return 'frontend'
-        except requests.RequestException:
-            pass
-            
-    except ImportError:
-        logger.warning("requests library not available for auto-detection")
-    except Exception as e:
-        logger.warning(f"Auto-detection failed: {e}")
-    
+    # Simple default: assume Live Server runs from frontend/ directory (most common case)
+    # This can be overridden with FRONTEND_PATH_PREFIX environment variable
     _frontend_path_prefix_cache = ''
-    logger.info("Auto-detection inconclusive, defaulting to frontend/ directory")
+    logger.info("Default: Live Server assumed to run from frontend/ directory")
     return ''
-
-
 def build_frontend_url(path):
     """Build complete frontend URL with automatic path detection.
     

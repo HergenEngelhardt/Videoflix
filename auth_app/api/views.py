@@ -128,12 +128,7 @@ def activate_account(request, uidb64, token):
 @permission_classes([AllowAny])
 def activate_redirect(request, uidb64, token):
     """Redirect from email link to frontend activation page."""
-    # Debug logging to see what we're actually getting
-    print(f"DEBUG activate_redirect - uidb64: {uidb64}, token: {token}")
-    
     frontend_url = build_frontend_url(f"pages/auth/activate.html?uid={uidb64}&token={token}")
-    print(f"DEBUG frontend_url: {frontend_url}")
-    
     return redirect(frontend_url)
 
 
