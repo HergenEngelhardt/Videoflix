@@ -17,6 +17,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from ..models import CustomUser
 from ..services.email_service import EmailService
+from ..utils import build_frontend_url
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from django.contrib.auth.tokens import default_token_generator
@@ -112,8 +113,8 @@ def create_activation_success_response():
 @permission_classes([AllowAny])
 def activate_account(request, uidb64, token):
     """Redirect to frontend activation page where initActivation() will handle the actual activation."""
-    # Redirect to frontend activate.html with the parameters so initActivation() can process them
-    return redirect(f"{settings.FRONTEND_URL}/pages/auth/activate.html?uid={uidb64}&token={token}")
+    frontend_url = build_frontend_url(f"pages/auth/activate.html?uid={uidb64}&token={token}")
+    return redirect(frontend_url)
 
 
 class CookieRefreshView(TokenRefreshView):
@@ -297,8 +298,8 @@ class PasswordResetConfirmView(APIView):
 
     def get(self, request, uidb64, token):
         """Redirect to frontend password reset page where initPasswordReset() will handle validation."""
-        # Redirect to frontend confirm_password.html with the parameters so initPasswordReset() can process them
-        return redirect(f"{settings.FRONTEND_URL}/pages/auth/confirm_password.html?uid={uidb64}&token={token}")
+        frontend_url = build_frontend_url(f"pages/auth/confirm_password.html?uid={uidb64}&token={token}")
+        return redirect(frontend_url)
 
     def post(self, request, uidb64, token):
         """Verify the reset token and set the new password."""

@@ -67,17 +67,15 @@ class EmailService:
         Uses HTML version if available, otherwise falls back silently to text.
         """
         try:
-            # Text version is required
             message = render_to_string(f'{template_name}.txt', context=context)
         except TemplateDoesNotExist:
             logger.error(f"Required text template '{template_name}.txt' not found. Email not sent.")
             raise
 
-        # HTML version is optional
         try:
             html_message = render_to_string(f'{template_name}.html', context=context)
         except TemplateDoesNotExist:
-            html_message = None  # Silent fallback to text only
+            html_message = None 
 
         try:
             send_mail(

@@ -314,6 +314,7 @@ RQ_QUEUES = {
 
 # Frontend and Backend URLs for email links
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5500')
+FRONTEND_PATH_PREFIX = os.environ.get('FRONTEND_PATH_PREFIX', 'frontend')  # 'frontend' für Development, '' für Production
 BACKEND_URL = os.environ.get('BACKEND_URL', 'http://localhost:8000')
 SITE_NAME = os.environ.get('SITE_NAME', 'Videoflix')
 

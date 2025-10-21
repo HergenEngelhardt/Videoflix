@@ -13,6 +13,93 @@ import django_rq
 
 logger = logging.getLogger(__name__)
 
+# Cache for auto-detected frontend path prefix
+_frontend_path_prefix_cache = None
+
+
+def detect_frontend_path_prefix():
+    """Detect whether Live Server runs from frontend/ or root directory.
+    
+    Returns:
+        str: '' if Live Server runs from frontend/, 'frontend' if from root
+    """
+    global _frontend_path_prefix_cache
+    
+    # Return cached result if available
+    if _frontend_path_prefix_cache is not None:
+        return _frontend_path_prefix_cache
+    
+    frontend_url = settings.FRONTEND_URL.rstrip('/')
+    
+    try:
+        import requests
+        
+        # Test if frontend files are directly accessible (Live Server from frontend/)
+        test_url_direct = f"{frontend_url}/shared/css/variables.css"
+        # Test if frontend files need 'frontend/' prefix (Live Server from root/)
+        test_url_prefixed = f"{frontend_url}/frontend/shared/css/variables.css"
+        
+        # Try direct access first (most common case)
+        try:
+            response = requests.head(test_url_direct, timeout=2)
+            if response.status_code == 200:
+                _frontend_path_prefix_cache = ''
+                logger.info("Auto-detected: Live Server running from frontend/ directory")
+                return ''
+        except requests.RequestException:
+            pass
+        
+        # Try with frontend/ prefix
+        try:
+            response = requests.head(test_url_prefixed, timeout=2)
+            if response.status_code == 200:
+                _frontend_path_prefix_cache = 'frontend'
+                logger.info("Auto-detected: Live Server running from root directory")
+                return 'frontend'
+        except requests.RequestException:
+            pass
+            
+    except ImportError:
+        logger.warning("requests library not available for auto-detection")
+    except Exception as e:
+        logger.warning(f"Auto-detection failed: {e}")
+    
+    # Fallback: assume Live Server runs from frontend/ (most common)
+    _frontend_path_prefix_cache = ''
+    logger.info("Auto-detection inconclusive, defaulting to frontend/ directory")
+    return ''
+
+
+def build_frontend_url(path):
+    """Build complete frontend URL with automatic path detection.
+    
+    Automatically detects whether Live Server runs from frontend/ or root directory
+    by checking if the frontend files are accessible at the base URL.
+    
+    Args:
+        path (str): Relative path from frontend root (e.g., 'pages/auth/activate.html')
+        
+    Returns:
+        str: Complete frontend URL
+        
+    Examples:
+        # Auto-detects and builds correct URL:
+        # Live Server from frontend/: http://localhost:5500/pages/auth/activate.html
+        # Live Server from root/: http://localhost:5500/frontend/pages/auth/activate.html
+    """
+    frontend_url = settings.FRONTEND_URL.rstrip('/')
+    path_prefix = getattr(settings, 'FRONTEND_PATH_PREFIX', 'auto').strip('/')
+    path = path.lstrip('/')
+    
+    # Auto-detection: If FRONTEND_PATH_PREFIX is 'auto', detect automatically
+    if path_prefix == 'auto':
+        path_prefix = detect_frontend_path_prefix()
+    
+    if path_prefix:
+        return f"{frontend_url}/{path_prefix}/{path}"
+    else:
+        return f"{frontend_url}/{path}"
+
 
 def generate_activation_link(user):
     """Generate activation link for user.
@@ -20,7 +107,7 @@ def generate_activation_link(user):
     Returns complete frontend URL for account activation process."""
     token = default_token_generator.make_token(user)
     uid = urlsafe_base64_encode(force_bytes(user.pk))
-    return f"{settings.FRONTEND_URL}/pages/auth/activate.html?uid={uid}&token={token}"
+    return build_frontend_url(f"pages/auth/activate.html?uid={uid}&token={token}")
 
 
 def render_activation_email(user, activation_link):
@@ -102,7 +189,7 @@ def generate_reset_link(user):
     Returns complete frontend URL for password reset process."""
     token = default_token_generator.make_token(user)
     uid = urlsafe_base64_encode(force_bytes(user.pk))
-    return f"{settings.FRONTEND_URL}/pages/auth/confirm_password.html?uid={uid}&token={token}"
+    return build_frontend_url(f"pages/auth/confirm_password.html?uid={uid}&token={token}")
 
 
 def render_password_reset_email(user, reset_link):
