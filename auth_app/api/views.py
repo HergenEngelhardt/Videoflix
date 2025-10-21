@@ -112,9 +112,20 @@ def create_activation_success_response():
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def activate_account(request, uidb64, token):
-    """Redirect to frontend activation page where initActivation() will handle the actual activation."""
-    frontend_url = build_frontend_url(f"pages/auth/activate.html?uid={uidb64}&token={token}")
-    return redirect(frontend_url)
+    """Handle account activation - redirect for email links, JSON response for API calls."""
+    if request.headers.get('Content-Type') == 'application/json' or 'application/json' in request.headers.get('Accept', ''):
+        user = decode_user_from_uidb64(uidb64)
+        
+        if user is None:
+            return create_activation_error_response()
+        
+        if activate_user_account(user, token):
+            return create_activation_success_response()
+        
+        return create_activation_error_response()
+    else:
+        frontend_url = build_frontend_url(f"pages/auth/activate.html?uid={uidb64}&token={token}")
+        return redirect(frontend_url)
 
 
 class CookieRefreshView(TokenRefreshView):

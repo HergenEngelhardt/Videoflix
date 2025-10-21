@@ -17,25 +17,21 @@ from datetime import timedelta
 
 load_dotenv()
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY')
 if not SECRET_KEY:
     raise ValueError("SECRET_KEY environment variable is required")
 
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", default="localhost").split(",")
-# CSRF Configuration - Must match CORS origins for proper security
 CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:5500",  # VS Code Live Server 
+    "http://localhost:5500",  
     "http://127.0.0.1:5500",
     "http://localhost:3000",
     "http://127.0.0.1:3000", 
@@ -45,10 +41,342 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:8000",
 ]
 
-# Allow additional CSRF origins from environment
 if os.environ.get("CSRF_TRUSTED_ORIGINS"):
     additional_csrf_origins = os.environ.get("CSRF_TRUSTED_ORIGINS").split(",")
     CSRF_TRUSTED_ORIGINS.extend(additional_csrf_origins)
+
+
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
+    'corsheaders',
+    'django_rq',
+
+    'auth_app',
+    'video_app',
+]
+
+MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+ROOT_URLCONF = 'core.urls'
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [BASE_DIR / 'templates'],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+WSGI_APPLICATION = 'core.wsgi.application'
+
+
+# Database
+# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+
+if os.environ.get("DB_NAME"):
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ.get("DB_NAME"),
+            "USER": os.environ.get("DB_USER"),
+            "PASSWORD": os.environ.get("DB_PASSWORD"),
+            "HOST": os.environ.get("DB_HOST", "localhost"),
+            "PORT": os.environ.get("DB_PORT", "5432")
+        }
+    }
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
+
+# Add Redis and RQ configuration
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": os.environ.get("REDIS_LOCATION", "redis://localhost:6379/1"),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient"
+        },
+        "KEY_PREFIX": "videoflix"
+    }
+}
+
+
+# Password validation
+# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
+
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
+
+
+# https://docs.djangoproject.com/en/5.2/topics/i18n/
+
+LANGUAGE_CODE = 'en-us'
+
+TIME_ZONE = 'UTC'
+
+USE_I18N = True
+
+USE_TZ = True
+
+
+# https://docs.djangoproject.com/en/5.2/howto/static-files/
+
+STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "static"
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'auth_app.authentication.JWTCookieAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ],
+}
+
+# Simple JWT Settings
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_COOKIE': 'access_token',
+    'AUTH_COOKIE_SECURE': False,  # Must be False for localhost development
+    'AUTH_COOKIE_HTTP_ONLY': True,
+    'AUTH_COOKIE_PATH': '/',
+    'AUTH_COOKIE_SAMESITE': 'None' if not DEBUG else 'Lax',
+    'REFRESH_COOKIE': 'refresh_token',
+    'REFRESH_COOKIE_SECURE': False,  # Must be False for localhost development
+    'REFRESH_COOKIE_HTTP_ONLY': True,
+    'REFRESH_COOKIE_PATH': '/',
+    'REFRESH_COOKIE_SAMESITE': 'None' if not DEBUG else 'Lax',
+}
+
+# CORS Settings
+# CORS Configuration for Frontend Integration
+# Explicitly list common local origins (both localhost and 127.0.0.1 variants)
+# to avoid host-name mismatches between frontend and backend during dev.
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5500",  # VS Code Live Server default
+    "http://127.0.0.1:5500",
+    "http://localhost:3000",  # React/Vue dev server
+    "http://127.0.0.1:3000",
+    "http://localhost:4200",  # Angular dev server
+    "http://127.0.0.1:4200",
+    "http://localhost:8000",  # Backend self
+    "http://127.0.0.1:8000",
+]
+
+# Allow additional origins from environment
+if os.environ.get("CORS_ALLOWED_ORIGINS"):
+    additional_origins = os.environ.get("CORS_ALLOWED_ORIGINS").split(",")
+    CORS_ALLOWED_ORIGINS.extend(additional_origins)
+
+# Allow all origins in development for convenience; keep explicit list as well
+CORS_ALLOW_ALL_ORIGINS = DEBUG
+
+# Regex pattern to allow all localhost and 127.0.0.1 origins in development
+if DEBUG:
+    CORS_ALLOWED_ORIGIN_REGEXES = [
+        r"^http://localhost:\d+$",
+        r"^http://127\.0\.0\.1:\d+$",
+    ]
+
+# Additional CORS settings for better compatibility
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
+# Essential CORS settings
+CORS_ALLOW_CREDENTIALS = True  # Required for HttpOnly cookies
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+CORS_ALLOWED_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+# Email Settings
+# Prefer Maildev in development to capture emails locally
+USE_MAILDEV = os.environ.get('USE_MAILDEV', 'false' if DEBUG else 'false').lower() == 'true'
+
+if USE_MAILDEV:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = os.environ.get('MAILDEV_HOST', default='localhost')
+    EMAIL_PORT = int(os.environ.get('MAILDEV_PORT', default=1025))
+    EMAIL_USE_TLS = False
+    EMAIL_USE_SSL = False
+    EMAIL_HOST_USER = ''
+    EMAIL_HOST_PASSWORD = ''
+    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@videoflix.local')
+else:
+    EMAIL_HOST = os.environ.get('EMAIL_HOST', default='')
+    if not EMAIL_HOST or EMAIL_HOST in ['smtp.example.com', 'localhost']:
+        # Development fallback: Print emails to console
+        EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+        DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@videoflix.local')
+    else:
+        # Production: Use configured SMTP server
+        EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+        EMAIL_PORT = int(os.environ.get('EMAIL_PORT', default=587))
+        EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', default='True').lower() == 'true'
+        EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', default='False').lower() == 'true'
+        EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', default='')
+        EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', default='')
+        DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'noreply@videoflix.local')
+
+# Redis & RQ Settings
+RQ_QUEUES = {
+    'default': {
+        'HOST': os.environ.get("REDIS_HOST", "redis"),  # Default to "redis" for Docker, "localhost" for local
+        'PORT': int(os.environ.get("REDIS_PORT", 6379)),
+        'DB': int(os.environ.get("REDIS_DB", 0)),
+        'PASSWORD': os.environ.get("REDIS_PASSWORD", ''),
+        'DEFAULT_TIMEOUT': 900,  # Increased timeout for video processing
+        'REDIS_CLIENT_KWARGS': {},
+    }
+}
+
+# Frontend and Backend URLs for email links
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5500')
+FRONTEND_PATH_PREFIX = os.environ.get('FRONTEND_PATH_PREFIX', 'frontend')  # 'frontend' für Development, '' für Production
+BACKEND_URL = os.environ.get('BACKEND_URL', 'http://localhost:8000')
+SITE_NAME = os.environ.get('SITE_NAME', 'Videoflix')
+
+# Custom User Model
+AUTH_USER_MODEL = 'auth_app.CustomUser'
+
+# Logging Configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'logs' / 'django.log',
+            'formatter': 'verbose',
+        },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'video_app': {
+            'handlers': ['file', 'console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'auth_app': {
+            'handlers': ['file', 'console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+}
+
+# Create logs directory if it doesn't exist
+LOG_DIR = BASE_DIR / 'logs'
+LOG_DIR.mkdir(exist_ok=True)
 
 
 # Application definition

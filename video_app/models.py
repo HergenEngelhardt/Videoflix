@@ -45,6 +45,10 @@ class Video(models.Model):
     
     processing_status = models.CharField(max_length=20, choices=PROCESSING_STATUS, default='pending')
     
+    # Add missing fields that are referenced in admin
+    hls_processed = models.BooleanField(default=False)
+    hls_path = models.CharField(max_length=500, blank=True, null=True)
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -58,6 +62,8 @@ class Video(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
+        """String representation of Video instance.
+        Returns title for display in admin interface and debugging."""
         return self.title
 
     def save(self, *args, **kwargs):
@@ -67,22 +73,6 @@ class Video(models.Model):
         if is_new and self.video_file:
             from .utils import queue_video_processing
             queue_video_processing(self)
-
-    def get_hls_resolutions(self):
-        """Get available HLS resolutions for this video."""
-        resolutions = []
-        if self.hls_480p_path:
-            resolutions.append('480p')
-        if self.hls_720p_path:
-            resolutions.append('720p')
-        if self.hls_1080p_path:
-            resolutions.append('1080p')
-        return resolutions
-
-    def __str__(self):
-        """String representation of Video instance.
-        Returns title for display in admin interface and debugging."""
-        return self.title
 
     @property
     def thumbnail_url(self):
@@ -98,6 +88,15 @@ class Video(models.Model):
         return None
 
     def get_hls_resolutions(self):
+        """Get available HLS resolutions for this video."""
+        resolutions = []
+        if self.hls_480p_path:
+            resolutions.append('480p')
+        if self.hls_720p_path:
+            resolutions.append('720p')
+        if self.hls_1080p_path:
+            resolutions.append('1080p')
+        return resolutions
         """Get available HLS resolutions for this video.
         Returns list of processed resolution strings (e.g., '720p', '1080p').
         Used for determining which quality options are available to clients."""

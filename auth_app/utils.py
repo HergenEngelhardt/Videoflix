@@ -13,7 +13,6 @@ import django_rq
 
 logger = logging.getLogger(__name__)
 
-# Cache for auto-detected frontend path prefix
 _frontend_path_prefix_cache = None
 
 
@@ -25,7 +24,6 @@ def detect_frontend_path_prefix():
     """
     global _frontend_path_prefix_cache
     
-    # Return cached result if available
     if _frontend_path_prefix_cache is not None:
         return _frontend_path_prefix_cache
     
@@ -34,12 +32,9 @@ def detect_frontend_path_prefix():
     try:
         import requests
         
-        # Test if frontend files are directly accessible (Live Server from frontend/)
         test_url_direct = f"{frontend_url}/shared/css/variables.css"
-        # Test if frontend files need 'frontend/' prefix (Live Server from root/)
         test_url_prefixed = f"{frontend_url}/frontend/shared/css/variables.css"
         
-        # Try direct access first (most common case)
         try:
             response = requests.head(test_url_direct, timeout=2)
             if response.status_code == 200:
@@ -49,7 +44,6 @@ def detect_frontend_path_prefix():
         except requests.RequestException:
             pass
         
-        # Try with frontend/ prefix
         try:
             response = requests.head(test_url_prefixed, timeout=2)
             if response.status_code == 200:
@@ -64,7 +58,6 @@ def detect_frontend_path_prefix():
     except Exception as e:
         logger.warning(f"Auto-detection failed: {e}")
     
-    # Fallback: assume Live Server runs from frontend/ (most common)
     _frontend_path_prefix_cache = ''
     logger.info("Auto-detection inconclusive, defaulting to frontend/ directory")
     return ''
@@ -91,7 +84,6 @@ def build_frontend_url(path):
     path_prefix = getattr(settings, 'FRONTEND_PATH_PREFIX', 'auto').strip('/')
     path = path.lstrip('/')
     
-    # Auto-detection: If FRONTEND_PATH_PREFIX is 'auto', detect automatically
     if path_prefix == 'auto':
         path_prefix = detect_frontend_path_prefix()
     

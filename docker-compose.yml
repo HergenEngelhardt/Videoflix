@@ -16,6 +16,16 @@ services:
     volumes:
       - redis_data:/data
 
+  maildev:
+    image: maildev/maildev:latest
+    container_name: videoflix_maildev
+    ports:
+      - "1080:1080"  
+      - "1025:1025"  
+    environment:
+      - MAILDEV_WEB_PORT=1080
+      - MAILDEV_SMTP_PORT=1025
+
   web:
     build:
       context: .
@@ -31,6 +41,7 @@ services:
     depends_on:
       - db
       - redis
+      - maildev
     command: ./backend.entrypoint.sh
 
   worker:
