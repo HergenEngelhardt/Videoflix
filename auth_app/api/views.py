@@ -112,20 +112,29 @@ def create_activation_success_response():
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def activate_account(request, uidb64, token):
-    """Handle account activation - redirect for email links, JSON response for API calls."""
-    if request.headers.get('Content-Type') == 'application/json' or 'application/json' in request.headers.get('Accept', ''):
-        user = decode_user_from_uidb64(uidb64)
-        
-        if user is None:
-            return create_activation_error_response()
-        
-        if activate_user_account(user, token):
-            return create_activation_success_response()
-        
+    """Activate user account using token from email - always returns JSON."""
+    user = decode_user_from_uidb64(uidb64)
+    
+    if user is None:
         return create_activation_error_response()
-    else:
-        frontend_url = build_frontend_url(f"pages/auth/activate.html?uid={uidb64}&token={token}")
-        return redirect(frontend_url)
+    
+    if activate_user_account(user, token):
+        return create_activation_success_response()
+    
+    return create_activation_error_response()
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def activate_redirect(request, uidb64, token):
+    """Redirect from email link to frontend activation page."""
+    # Debug logging to see what we're actually getting
+    print(f"DEBUG activate_redirect - uidb64: {uidb64}, token: {token}")
+    
+    frontend_url = build_frontend_url(f"pages/auth/activate.html?uid={uidb64}&token={token}")
+    print(f"DEBUG frontend_url: {frontend_url}")
+    
+    return redirect(frontend_url)
 
 
 class CookieRefreshView(TokenRefreshView):

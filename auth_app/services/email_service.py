@@ -42,9 +42,14 @@ class EmailService:
 
     @staticmethod
     def send_registration_confirmation_email(user, token):
-        """Send account activation email with link to backend API endpoint that redirects to frontend."""
+        """Send account activation email with link to backend redirect endpoint."""
         uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
-        confirmation_url = f"{settings.BACKEND_URL}/api/activate/{uidb64}/{token}/"
+        confirmation_url = f"{settings.BACKEND_URL}/api/activate-redirect/{uidb64}/{token}/"
+
+        print(f"DEBUG email service - user.pk: {user.pk}")
+        print(f"DEBUG email service - uidb64: {uidb64}")
+        print(f"DEBUG email service - token: {token}")
+        print(f"DEBUG email service - confirmation_url: {confirmation_url}")
 
         context = {
             'user': user,

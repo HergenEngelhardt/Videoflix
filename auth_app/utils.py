@@ -9,7 +9,6 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
-import django_rq
 
 logger = logging.getLogger(__name__)
 
@@ -84,13 +83,21 @@ def build_frontend_url(path):
     path_prefix = getattr(settings, 'FRONTEND_PATH_PREFIX', 'auto').strip('/')
     path = path.lstrip('/')
     
+    print(f"DEBUG build_frontend_url - frontend_url: {frontend_url}")
+    print(f"DEBUG build_frontend_url - path_prefix: {path_prefix}")
+    print(f"DEBUG build_frontend_url - path: {path}")
+    
     if path_prefix == 'auto':
         path_prefix = detect_frontend_path_prefix()
+        print(f"DEBUG build_frontend_url - detected path_prefix: {path_prefix}")
     
     if path_prefix:
-        return f"{frontend_url}/{path_prefix}/{path}"
+        final_url = f"{frontend_url}/{path_prefix}/{path}"
     else:
-        return f"{frontend_url}/{path}"
+        final_url = f"{frontend_url}/{path}"
+    
+    print(f"DEBUG build_frontend_url - final_url: {final_url}")
+    return final_url
 
 
 def generate_activation_link(user):
@@ -156,6 +163,7 @@ def _enqueue_or_send_now(func, *args):
         return func(*args)
 
     try:
+        import django_rq
         queue = django_rq.get_queue('default')
         return queue.enqueue(func, *args)
     except Exception as exc:

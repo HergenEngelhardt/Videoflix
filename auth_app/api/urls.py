@@ -4,6 +4,7 @@ from . import views
 urlpatterns = [
     path('register/', views.RegistrationView.as_view(), name='register'),
     path('activate/<str:uidb64>/<str:token>/', views.activate_account, name='activate_account'),
+    path('activate-redirect/<str:uidb64>/<str:token>/', views.activate_redirect, name='activate_redirect'),
     path('login/', views.login_user, name='login'),
     path('logout/', views.LogoutView.as_view(), name='logout'),
     path('token/refresh/', views.token_refresh_view, name='token_refresh'),
