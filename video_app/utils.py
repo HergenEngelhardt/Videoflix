@@ -131,14 +131,12 @@ def process_video_with_thumbnail(video_id):
     from .models import Video
     
     try:
-        # Load video instance from database using ID
         try:
             video_instance = Video.objects.get(id=video_id)
         except Video.DoesNotExist:
             logger.error(f"Video with ID {video_id} does not exist")
             return False
         
-        # Set status to processing
         video_instance.processing_status = 'processing'
         video_instance.save()
         logger.info(f"Started processing video ID {video_instance.id}")
@@ -181,7 +179,6 @@ def process_video_with_thumbnail(video_id):
         from .hls_utils import convert_video_to_hls
         hls_success = convert_video_to_hls(video_instance)
         
-        # Update processing status based on results
         if hls_success and thumbnail_success:
             video_instance.processing_status = 'completed'
             video_instance.save()
@@ -194,7 +191,6 @@ def process_video_with_thumbnail(video_id):
         return hls_success and thumbnail_success
         
     except Exception as e:
-        # Set status to failed on exception
         try:
             video_instance = Video.objects.get(id=video_id)
             video_instance.processing_status = 'failed'

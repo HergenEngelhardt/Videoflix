@@ -36,7 +36,7 @@ class EmailService:
 
         EmailService._send_templated_email(
             template_name='password_reset_email',
-            subject='Passwort zurücksetzen',
+            subject='Reset Your Password',
             recipient=user.email,
             context=context
         )
@@ -63,7 +63,7 @@ class EmailService:
 
         EmailService._send_templated_email(
             template_name='activation_email',
-            subject='Bestätige deine Registrierung',
+            subject='Confirm Your Registration',
             recipient=user.email,
             context=context
         )
