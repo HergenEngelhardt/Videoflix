@@ -35,10 +35,8 @@ class RegistrationView(APIView):
 
         if serializer.is_valid():
             saved_account = serializer.save()
-            logger.debug(f"User created: {saved_account.email}, is_active: {saved_account.is_active}")
             
             token = default_token_generator.make_token(saved_account)
-            logger.debug(f"Generated activation token for user {saved_account.email}")
 
             EmailService.send_registration_confirmation_email(saved_account, token)
 
@@ -51,7 +49,6 @@ class RegistrationView(APIView):
             }
             return Response(data, status=status.HTTP_201_CREATED)
         else:
-            logger.debug(f"Registration failed, errors: {serializer.errors}")
             return Response({
                 'error': 'Email or Password is invalid'
             }, status=status.HTTP_400_BAD_REQUEST)

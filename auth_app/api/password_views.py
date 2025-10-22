@@ -86,10 +86,8 @@ def send_password_reset_to_user(email):
 @permission_classes([AllowAny])
 def password_reset_redirect(request, uidb64, token):
     """Redirect from email link to frontend password reset page (like colleague's implementation)."""
-    logger.debug(f"password_reset_redirect - uidb64: {uidb64}, token: {token}")
     
     frontend_url = build_frontend_url(f"pages/auth/confirm_password.html?uid={uidb64}&token={token}")
-    logger.debug(f"frontend_url: {frontend_url}")
     
     return redirect(frontend_url)
 

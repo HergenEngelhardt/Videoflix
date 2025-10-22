@@ -41,12 +41,8 @@ def build_frontend_url(path):
     frontend_url = settings.FRONTEND_URL.rstrip('/')
     path = path.lstrip('/')
     
-    print(f"DEBUG build_frontend_url - frontend_url: {frontend_url}")
-    print(f"DEBUG build_frontend_url - path: {path}")
-    
     final_url = f"{frontend_url}/frontend/{path}"
     
-    print(f"DEBUG build_frontend_url - final_url: {final_url}")
     return final_url
 
 
@@ -71,7 +67,6 @@ def render_activation_email(user, activation_link):
 def _enqueue_or_send_now(func, *args):
     """Queue email task or execute immediately when queue is unavailable."""
     if getattr(settings, 'USE_MAILDEV', False):
-        logger.debug("Maildev enabled – sending email immediately without queue")
         return func(*args)
 
     try:

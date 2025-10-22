@@ -46,15 +46,8 @@ class EmailService:
         """Send account activation email with backend redirect link (like colleague's implementation)."""
         uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
         
-        print(f"DEBUG: Generating activation email for user {user.email}")
-        print(f"DEBUG: User ID: {user.pk}")
-        print(f"DEBUG: uidb64: {uidb64}")
-        print(f"DEBUG: token: {token}")
-        
         confirmation_url = f"{settings.BACKEND_URL}/api/activate-redirect/{uidb64}/{token}/"
         
-        print(f"DEBUG: Generated confirmation_url: {confirmation_url}")
-
         context = {
             'user': user,
             'confirmation_url': confirmation_url,

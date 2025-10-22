@@ -71,27 +71,21 @@ def create_activation_success_response():
 @permission_classes([AllowAny])
 def activate_account(request, uidb64, token):
     """Activate user account using token from email - returns JSON response."""
-    logger.debug(f"Activation request received - uidb64: {uidb64}, token: {token}")
     
     user = decode_user_from_uidb64(uidb64)
-    logger.debug(f"User found: {user}")
     
     if user is None:
-        logger.debug("User not found or invalid uidb64")
         return create_activation_error_response()
     
     if user.is_active:
-        logger.debug(f"User {user.email} is already active")
         return Response(
-            {'message': 'Account is already activated.'},
+            {'message': 'Account successfully activated.'},
             status=status.HTTP_200_OK
         )
     
     if activate_user_account(user, token):
-        logger.debug(f"User {user.email} successfully activated")
         return create_activation_success_response()
     
-    logger.debug(f"Token validation failed for user {user.email}")
     return create_activation_error_response()
 
 
@@ -99,9 +93,7 @@ def activate_account(request, uidb64, token):
 @permission_classes([AllowAny])
 def activate_redirect(request, uidb64, token):
     """Redirect from email link to frontend activation page (like colleague's implementation)."""
-    logger.debug(f"activate_redirect - uidb64: {uidb64}, token: {token}")
     
     frontend_url = build_frontend_url(f"pages/auth/activate.html?uid={uidb64}&token={token}")
-    logger.debug(f"frontend_url: {frontend_url}")
     
     return redirect(frontend_url)
