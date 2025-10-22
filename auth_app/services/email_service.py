@@ -20,10 +20,12 @@ class EmailService:
 
     @staticmethod
     def send_password_reset_email(user):
-        """Send password reset email with link to backend API endpoint that redirects to frontend."""
+        """Send password reset email with backend redirect link (like colleague's implementation)."""
         token = default_token_generator.make_token(user)
         uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
-        reset_url = f"{settings.BACKEND_URL}/api/password_reset_confirm/{uidb64}/{token}/"
+        
+        # Use backend URL that redirects to frontend (like colleague's approach)
+        reset_url = f"{settings.BACKEND_URL}/api/password-reset-redirect/{uidb64}/{token}/"
 
         site_name = getattr(settings, 'SITE_NAME', 'Videoflix')
 
@@ -42,12 +44,18 @@ class EmailService:
 
     @staticmethod
     def send_registration_confirmation_email(user, token):
-        """Send account activation email with direct link to frontend activation page."""
+        """Send account activation email with backend redirect link (like colleague's implementation)."""
         uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
         
-        # Use build_frontend_url to create direct link to frontend with parameters
-        from ..utils import build_frontend_url
-        confirmation_url = build_frontend_url(f"pages/auth/activate.html?uid={uidb64}&token={token}")
+        print(f"DEBUG: Generating activation email for user {user.email}")
+        print(f"DEBUG: User ID: {user.pk}")
+        print(f"DEBUG: uidb64: {uidb64}")
+        print(f"DEBUG: token: {token}")
+        
+        # Use backend URL that redirects to frontend (like colleague's approach)
+        confirmation_url = f"{settings.BACKEND_URL}/api/activate-redirect/{uidb64}/{token}/"
+        
+        print(f"DEBUG: Generated confirmation_url: {confirmation_url}")
 
         context = {
             'user': user,

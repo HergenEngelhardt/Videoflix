@@ -14,16 +14,12 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenRefreshView
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import TokenError
 
 from ..models import CustomUser
 from ..services.email_service import EmailService
 from ..utils import build_frontend_url
-from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.exceptions import TokenError
-from django.contrib.auth.tokens import default_token_generator
-from django.utils.http import urlsafe_base64_decode
-from django.utils.encoding import force_str
-from django.shortcuts import get_object_or_404
 
 from .serializers import (
     UserRegistrationSerializer,
@@ -55,7 +51,10 @@ class RegistrationView(APIView):
 
         if serializer.is_valid():
             saved_account = serializer.save()
+            print(f"DEBUG: User created: {saved_account.email}, is_active: {saved_account.is_active}")
+            
             token = default_token_generator.make_token(saved_account)
+            print(f"DEBUG: Generated token: {token}")
 
             EmailService.send_registration_confirmation_email(saved_account, token)
 
@@ -68,6 +67,7 @@ class RegistrationView(APIView):
             }
             return Response(data, status=status.HTTP_201_CREATED)
         else:
+            print(f"DEBUG: Registration failed, errors: {serializer.errors}")
             return Response({
                 'error': 'Email or Password is invalid'
             }, status=status.HTTP_400_BAD_REQUEST)
@@ -79,18 +79,26 @@ def decode_user_from_uidb64(uidb64):
     Protects against timing attacks and invalid token formats."""
     try:
         uid = force_str(urlsafe_base64_decode(uidb64))
-        return get_object_or_404(CustomUser, pk=uid)
-    except (TypeError, ValueError, OverflowError):
+        return CustomUser.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, CustomUser.DoesNotExist):
         return None
 
 
 def activate_user_account(user, token):
     """Activate user account if token is valid."""
+    print(f"DEBUG: Checking token for user {user.email}")
+    print(f"DEBUG: User is_active before: {user.is_active}")
+    print(f"DEBUG: Token: {token}")
+    
     if default_token_generator.check_token(user, token):
+        print("DEBUG: Token is valid, activating user")
         user.is_active = True
         user.save()
+        print(f"DEBUG: User is_active after save: {user.is_active}")
         return True
-    return False
+    else:
+        print("DEBUG: Token is invalid")
+        return False
 
 
 def create_activation_error_response():
@@ -112,23 +120,41 @@ def create_activation_success_response():
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def activate_account(request, uidb64, token):
-    """Activate user account using token from email - always returns JSON."""
+    """Activate user account using token from email - returns JSON response."""
+    print(f"DEBUG: Activation request received - uidb64: {uidb64}, token: {token}")
+    
     user = decode_user_from_uidb64(uidb64)
+    print(f"DEBUG: User found: {user}")
     
     if user is None:
+        print("DEBUG: User not found or invalid uidb64")
         return create_activation_error_response()
     
+    if user.is_active:
+        print(f"DEBUG: User {user.email} is already active")
+        return Response(
+            {'message': 'Account is already activated.'},
+            status=status.HTTP_200_OK
+        )
+    
     if activate_user_account(user, token):
+        print(f"DEBUG: User {user.email} successfully activated")
         return create_activation_success_response()
     
+    print(f"DEBUG: Token validation failed for user {user.email}")
     return create_activation_error_response()
 
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def activate_redirect(request, uidb64, token):
-    """Redirect from email link to frontend activation page."""
+    """Redirect from email link to frontend activation page (like colleague's implementation)."""
+    print(f"DEBUG activate_redirect - uidb64: {uidb64}, token: {token}")
+    
+    # Redirect to frontend activation page with parameters (like colleague's approach)
     frontend_url = build_frontend_url(f"pages/auth/activate.html?uid={uidb64}&token={token}")
+    print(f"DEBUG frontend_url: {frontend_url}")
+    
     return redirect(frontend_url)
 
 
@@ -305,6 +331,19 @@ def process_logout(refresh_token):
     response = create_logout_response()
     clear_auth_cookies(response)
     return response
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def password_reset_redirect(request, uidb64, token):
+    """Redirect from email link to frontend password reset page (like colleague's implementation)."""
+    print(f"DEBUG password_reset_redirect - uidb64: {uidb64}, token: {token}")
+    
+    # Redirect to frontend password reset page with parameters (like colleague's approach)
+    frontend_url = build_frontend_url(f"pages/auth/confirm_password.html?uid={uidb64}&token={token}")
+    print(f"DEBUG frontend_url: {frontend_url}")
+    
+    return redirect(frontend_url)
 
 
 class PasswordResetConfirmView(APIView):

@@ -239,19 +239,6 @@ if DEBUG:
         r"^http://127\.0\.0\.1:\d+$",
     ]
 
-# Additional CORS settings for better compatibility
-CORS_ALLOW_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
-]
-
 # Essential CORS settings
 CORS_ALLOW_CREDENTIALS = True  # Required for HttpOnly cookies
 CORS_ALLOW_HEADERS = [
@@ -552,92 +539,6 @@ SIMPLE_JWT = {
     'REFRESH_COOKIE_HTTP_ONLY': True,
     'REFRESH_COOKIE_PATH': '/',
     'REFRESH_COOKIE_SAMESITE': 'None' if not DEBUG else 'Lax',
-}
-
-# CORS Settings
-# CORS Configuration for Frontend Integration
-# Explicitly list common local origins (both localhost and 127.0.0.1 variants)
-# to avoid host-name mismatches between frontend and backend during dev.
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5500",  # VS Code Live Server default
-    "http://127.0.0.1:5500",
-    "http://localhost:3000",  # React/Vue dev server
-    "http://127.0.0.1:3000",
-    "http://localhost:4200",  # Angular dev server
-    "http://127.0.0.1:4200",
-    "http://localhost:8000",  # Backend self
-    "http://127.0.0.1:8000",
-]
-
-# Allow additional origins from environment
-if os.environ.get("CORS_ALLOWED_ORIGINS"):
-    additional_origins = os.environ.get("CORS_ALLOWED_ORIGINS").split(",")
-    CORS_ALLOWED_ORIGINS.extend(additional_origins)
-
-# Allow all origins in development for convenience; keep explicit list as well
-CORS_ALLOW_ALL_ORIGINS = DEBUG
-
-# Essential CORS settings
-CORS_ALLOW_CREDENTIALS = True  # Required for HttpOnly cookies
-CORS_ALLOW_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
-]
-CORS_ALLOWED_METHODS = [
-    'DELETE',
-    'GET',
-    'OPTIONS',
-    'PATCH',
-    'POST',
-    'PUT',
-]
-
-# Email Settings
-# Prefer Maildev in development to capture emails locally
-USE_MAILDEV = os.environ.get('USE_MAILDEV', 'false' if DEBUG else 'false').lower() == 'true'
-
-if USE_MAILDEV:
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = os.environ.get('MAILDEV_HOST', default='localhost')
-    EMAIL_PORT = int(os.environ.get('MAILDEV_PORT', default=1025))
-    EMAIL_USE_TLS = False
-    EMAIL_USE_SSL = False
-    EMAIL_HOST_USER = ''
-    EMAIL_HOST_PASSWORD = ''
-    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@videoflix.local')
-else:
-    EMAIL_HOST = os.environ.get('EMAIL_HOST', default='')
-    if not EMAIL_HOST or EMAIL_HOST in ['smtp.example.com', 'localhost']:
-        # Development fallback: Print emails to console
-        EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-        DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@videoflix.local')
-    else:
-        # Production: Use configured SMTP server
-        EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-        EMAIL_PORT = int(os.environ.get('EMAIL_PORT', default=587))
-        EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', default='True').lower() == 'true'
-        EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', default='False').lower() == 'true'
-        EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', default='')
-        EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', default='')
-        DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'noreply@videoflix.local')
-
-# Redis & RQ Settings
-RQ_QUEUES = {
-    'default': {
-        'HOST': os.environ.get("REDIS_HOST", "redis"),  # Default to "redis" for Docker, "localhost" for local
-        'PORT': int(os.environ.get("REDIS_PORT", 6379)),
-        'DB': int(os.environ.get("REDIS_DB", 0)),
-        'PASSWORD': os.environ.get("REDIS_PASSWORD", ''),
-        'DEFAULT_TIMEOUT': 900,  # Increased timeout for video processing
-        'REDIS_CLIENT_KWARGS': {},
-    }
 }
 
 # Frontend and Backend URLs for email links
