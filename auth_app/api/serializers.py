@@ -162,22 +162,14 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 
         return attrs
 
+    def save(self, user):
+        """Set the new password for the user."""
+        user.set_password(self.validated_data['new_password'])
+        user.save()
+        return user
 
-class PasswordResetSerializer(serializers.Serializer):
-    """Serializer for password reset request."""
-    email = serializers.EmailField()
 
 
-class PasswordConfirmSerializer(serializers.Serializer):
-    """Serializer for password reset confirmation."""
-    new_password = serializers.CharField(validators=[validate_password])
-    confirm_password = serializers.CharField()
-
-    def validate(self, attrs):
-        """Validate that passwords match."""
-        if attrs['new_password'] != attrs['confirm_password']:
-            raise serializers.ValidationError("Passwords do not match.")
-        return attrs
 
 
 class UserSerializer(serializers.ModelSerializer):

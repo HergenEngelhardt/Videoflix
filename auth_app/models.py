@@ -57,25 +57,3 @@ class CustomUser(AbstractUser):
     def __str__(self):
         """String representation of CustomUser instance."""
         return self.email
-
-
-class PasswordResetToken(models.Model):
-    """Token model for password reset functionality (like colleague's implementation)."""
-    key = models.CharField(max_length=255, unique=True, editable=False)
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
-    timestamp = models.DateTimeField(auto_now_add=True)
-
-    @property
-    def is_expired(self):
-        return timezone.now() > self.timestamp + timedelta(hours=24)
-
-
-class AccountActivationToken(models.Model):
-    """Token model for account activation functionality (like colleague's implementation)."""
-    key = models.CharField(max_length=255, unique=True, editable=False)
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
-    timestamp = models.DateTimeField(auto_now_add=True)
-
-    @property
-    def is_expired(self):
-        return timezone.now() > self.timestamp + timedelta(hours=24)

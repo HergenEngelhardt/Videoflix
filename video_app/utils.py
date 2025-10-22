@@ -120,15 +120,24 @@ def queue_video_processing(video_instance):
         logger.error(f"Failed to queue video processing for ID {video_instance.id}: {str(e)}")
 
 
-def process_video_with_thumbnail(video_instance):
+def process_video_with_thumbnail(video_id):
     """
     Process video by generating thumbnail and converting to HLS.
     This combines both operations in the correct order.
+    Takes video ID and loads the instance from database.
     """
     import os
     from django.conf import settings
+    from .models import Video
     
     try:
+        # Load video instance from database using ID
+        try:
+            video_instance = Video.objects.get(id=video_id)
+        except Video.DoesNotExist:
+            logger.error(f"Video with ID {video_id} does not exist")
+            return False
+            
         thumbnail_success = False
         
         if video_instance.video_file:
@@ -175,7 +184,7 @@ def process_video_with_thumbnail(video_instance):
         return hls_success and thumbnail_success
         
     except Exception as e:
-        logger.error(f"Error in complete video processing for ID {video_instance.id}: {str(e)}")
+        logger.error(f"Error in complete video processing for ID {video_id}: {str(e)}")
         return False
 
 

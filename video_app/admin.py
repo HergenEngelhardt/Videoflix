@@ -9,49 +9,6 @@ class CategoryAdmin(admin.ModelAdmin):
     list_display = ('name', 'created_at')
     search_fields = ('name',)
     ordering = ('name',)
-    actions = ['create_default_categories']
-    
-    def create_default_categories(self, request, queryset):
-        """Action to create default movie categories."""
-        default_categories = [
-            'Action',
-            'Comedy', 
-            'Drama',
-            'Horror',
-            'Thriller',
-            'Science Fiction',
-            'Fantasy',
-            'Romance',
-            'Adventure',
-            'Crime',
-            'Mystery',
-            'Animation',
-            'Documentary',
-            'Biography',
-            'History',
-            'War',
-            'Western',
-            'Musical',
-            'Family',
-            'Sport'
-        ]
-        
-        created_count = 0
-        existing_count = 0
-        
-        for category_name in default_categories:
-            category, created = Category.objects.get_or_create(name=category_name)
-            if created:
-                created_count += 1
-            else:
-                existing_count += 1
-        
-        if created_count > 0:
-            self.message_user(request, f'{created_count} neue Kategorien wurden erstellt.')
-        if existing_count > 0:
-            self.message_user(request, f'{existing_count} Kategorien existierten bereits.')
-    
-    create_default_categories.short_description = 'Standard Film-Kategorien erstellen'
 
 
 @admin.register(Video)
