@@ -8,7 +8,7 @@ from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes
-from django.utils.http import urlsafe_base64_encode
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 
 logger = logging.getLogger(__name__)
 
@@ -84,3 +84,29 @@ def _enqueue_or_send_now(func, *args):
             exc_info=True
         )
         return func(*args)
+
+
+def encode_user_id_to_base64(user_id):
+    """Encode user ID to base64 (like colleague's implementation)."""
+    data = str(user_id)  
+    data_bytes = data.encode("utf-8") 
+    uid_base64 = urlsafe_base64_encode(data_bytes)
+    return uid_base64
+
+
+def decode_uidb64_to_int(uidb64):
+    """Decode uidb64 to integer user ID (like colleague's implementation)."""
+    uid_bytes = urlsafe_base64_decode(uidb64) 
+    uid_str = uid_bytes.decode("utf-8")
+    uid_int = int(uid_str)
+    return uid_int
+
+
+def token_is_valid(token_obj):
+    """Check if token object is valid and not expired (like colleague's implementation)."""
+    if not token_obj:
+        return False
+    if token_obj.is_expired:
+        token_obj.delete()
+        return False
+    return True

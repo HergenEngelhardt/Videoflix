@@ -17,9 +17,11 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 
+import uuid
 from ..models import CustomUser
-from ..services.email_service import EmailService
 from ..utils import build_frontend_url
+from ..services.email_service import EmailService
+import logging
 
 from .serializers import (
     UserRegistrationSerializer,
@@ -30,6 +32,7 @@ from .serializers import (
 from ..services.email_service import EmailService
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
 def create_user_response(user, token):
@@ -51,10 +54,11 @@ class RegistrationView(APIView):
 
         if serializer.is_valid():
             saved_account = serializer.save()
-            print(f"DEBUG: User created: {saved_account.email}, is_active: {saved_account.is_active}")
+            logger.debug(f"User created: {saved_account.email}, is_active: {saved_account.is_active}")
             
+            # Use Django's default token generator (simplified approach)
             token = default_token_generator.make_token(saved_account)
-            print(f"DEBUG: Generated token: {token}")
+            logger.debug(f"Generated activation token for user {saved_account.email}")
 
             EmailService.send_registration_confirmation_email(saved_account, token)
 
@@ -74,9 +78,7 @@ class RegistrationView(APIView):
 
 
 def decode_user_from_uidb64(uidb64):
-    """Decode user ID from base64 and get user object.
-    Safely extracts and validates user from encoded activation tokens.
-    Protects against timing attacks and invalid token formats."""
+    """Decode user ID from base64 and get user object."""
     try:
         uid = force_str(urlsafe_base64_decode(uidb64))
         return CustomUser.objects.get(pk=uid)
@@ -85,20 +87,24 @@ def decode_user_from_uidb64(uidb64):
 
 
 def activate_user_account(user, token):
-    """Activate user account if token is valid."""
-    print(f"DEBUG: Checking token for user {user.email}")
-    print(f"DEBUG: User is_active before: {user.is_active}")
-    print(f"DEBUG: Token: {token}")
+    """Activate user account if token is valid - improved robustness."""
+    logger.info(f"Checking activation token for user id={user.pk} email={user.email}")
     
+    # Check if user is already active (idempotent)
+    if user.is_active:
+        logger.info(f"User {user.email} is already active")
+        return True
+    
+    # Validate token
     if default_token_generator.check_token(user, token):
-        print("DEBUG: Token is valid, activating user")
+        logger.info("Token is valid, activating user")
         user.is_active = True
         user.save()
-        print(f"DEBUG: User is_active after save: {user.is_active}")
+        logger.info(f"User {user.email} activated successfully")
         return True
-    else:
-        print("DEBUG: Token is invalid")
-        return False
+    
+    logger.info("Token validation failed")
+    return False
 
 
 def create_activation_error_response():
@@ -121,27 +127,27 @@ def create_activation_success_response():
 @permission_classes([AllowAny])
 def activate_account(request, uidb64, token):
     """Activate user account using token from email - returns JSON response."""
-    print(f"DEBUG: Activation request received - uidb64: {uidb64}, token: {token}")
+    logger.debug(f"Activation request received - uidb64: {uidb64}, token: {token}")
     
     user = decode_user_from_uidb64(uidb64)
-    print(f"DEBUG: User found: {user}")
+    logger.debug(f"User found: {user}")
     
     if user is None:
-        print("DEBUG: User not found or invalid uidb64")
+        logger.debug("User not found or invalid uidb64")
         return create_activation_error_response()
     
     if user.is_active:
-        print(f"DEBUG: User {user.email} is already active")
+        logger.debug(f"User {user.email} is already active")
         return Response(
             {'message': 'Account is already activated.'},
             status=status.HTTP_200_OK
         )
     
     if activate_user_account(user, token):
-        print(f"DEBUG: User {user.email} successfully activated")
+        logger.debug(f"User {user.email} successfully activated")
         return create_activation_success_response()
     
-    print(f"DEBUG: Token validation failed for user {user.email}")
+    logger.debug(f"Token validation failed for user {user.email}")
     return create_activation_error_response()
 
 
@@ -149,11 +155,11 @@ def activate_account(request, uidb64, token):
 @permission_classes([AllowAny])
 def activate_redirect(request, uidb64, token):
     """Redirect from email link to frontend activation page (like colleague's implementation)."""
-    print(f"DEBUG activate_redirect - uidb64: {uidb64}, token: {token}")
+    logger.debug(f"activate_redirect - uidb64: {uidb64}, token: {token}")
     
     # Redirect to frontend activation page with parameters (like colleague's approach)
     frontend_url = build_frontend_url(f"pages/auth/activate.html?uid={uidb64}&token={token}")
-    print(f"DEBUG frontend_url: {frontend_url}")
+    logger.debug(f"frontend_url: {frontend_url}")
     
     return redirect(frontend_url)
 
