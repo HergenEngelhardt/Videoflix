@@ -45,6 +45,9 @@ services:
     command: ./backend.entrypoint.sh
 
   worker:
+    build:
+      context: .
+      dockerfile: backend.Dockerfile
     image: videoflix-backend:latest
     env_file: .env
     container_name: videoflix_worker

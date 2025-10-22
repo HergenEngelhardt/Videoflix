@@ -33,7 +33,7 @@ def decode_user_from_uidb64(uidb64):
 
 
 def activate_user_account(user, token):
-    """Activate user account if token is valid - improved robustness."""
+    """Activate user account if token is valid - simple and robust solution."""
     logger.info(f"Checking activation token for user id={user.pk} email={user.email}")
     
     if user.is_active:
@@ -47,7 +47,8 @@ def activate_user_account(user, token):
         logger.info(f"User {user.email} activated successfully")
         return True
     
-    logger.info("Token validation failed")
+    logger.warning(f"Token validation failed for user {user.email}")
+    return False
     return False
 
 
@@ -75,17 +76,21 @@ def activate_account(request, uidb64, token):
     user = decode_user_from_uidb64(uidb64)
     
     if user is None:
+        logger.warning(f"Invalid uidb64 provided: {uidb64}")
         return create_activation_error_response()
     
     if user.is_active:
+        logger.info(f"User {user.email} is already active - returning success")
         return Response(
             {'message': 'Account successfully activated.'},
             status=status.HTTP_200_OK
         )
     
     if activate_user_account(user, token):
+        logger.info(f"User {user.email} successfully activated via token")
         return create_activation_success_response()
     
+    logger.error(f"Activation failed for user {user.email}")
     return create_activation_error_response()
 
 
