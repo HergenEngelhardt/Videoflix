@@ -114,7 +114,7 @@ def queue_video_processing(video_instance):
     
     try:
         queue = django_rq.get_queue('default')
-        queue.enqueue(process_video_with_thumbnail, video_instance)
+        queue.enqueue(process_video_with_thumbnail, video_instance.id)
         logger.info(f"Video ID {video_instance.id} queued for complete processing")
     except Exception as e:
         logger.error(f"Failed to queue video processing for ID {video_instance.id}: {str(e)}")
@@ -137,6 +137,11 @@ def process_video_with_thumbnail(video_id):
         except Video.DoesNotExist:
             logger.error(f"Video with ID {video_id} does not exist")
             return False
+        
+        # Set status to processing
+        video_instance.processing_status = 'processing'
+        video_instance.save()
+        logger.info(f"Started processing video ID {video_instance.id}")
             
         thumbnail_success = False
         
@@ -176,14 +181,26 @@ def process_video_with_thumbnail(video_id):
         from .hls_utils import convert_video_to_hls
         hls_success = convert_video_to_hls(video_instance)
         
-        if hls_success:
+        # Update processing status based on results
+        if hls_success and thumbnail_success:
+            video_instance.processing_status = 'completed'
+            video_instance.save()
             logger.info(f"Complete video processing successful for ID {video_instance.id}")
         else:
-            logger.error(f"HLS conversion failed for video ID {video_instance.id}")
+            video_instance.processing_status = 'failed'
+            video_instance.save()
+            logger.error(f"Video processing failed for ID {video_instance.id} - HLS: {hls_success}, Thumbnail: {thumbnail_success}")
             
         return hls_success and thumbnail_success
         
     except Exception as e:
+        # Set status to failed on exception
+        try:
+            video_instance = Video.objects.get(id=video_id)
+            video_instance.processing_status = 'failed'
+            video_instance.save()
+        except:
+            pass
         logger.error(f"Error in complete video processing for ID {video_id}: {str(e)}")
         return False
 
@@ -387,15 +404,3 @@ def thumbnail_upload_path(instance, filename):
     """Generates the file path where thumbnail images will be uploaded."""
     identifier = instance.id if instance.id else uuid.uuid4().hex
     return f'videos/thumbnails/{identifier}/{filename}'
-
-
-def queue_video_processing(video_instance):
-    """Queue video for background processing (thumbnail generation and HLS conversion)."""
-    try:
-        import django_rq
-        queue = django_rq.get_queue('default')
-        queue.enqueue('video_app.utils.process_video_with_thumbnail', video_instance.id)
-        logger.info(f"Video {video_instance.id} queued for processing")
-    except Exception as e:
-        logger.error(f"Failed to queue video {video_instance.id} for processing: {str(e)}")
-        process_video_with_thumbnail(video_instance)

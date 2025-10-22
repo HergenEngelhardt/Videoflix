@@ -18,8 +18,21 @@ class VideoAdmin(admin.ModelAdmin):
     list_filter = ('category', 'processing_status', 'created_at')
     search_fields = ('title', 'description')
     ordering = ('-created_at',)
-    readonly_fields = ('created_at', 'updated_at', 'thumbnail_preview')
+    readonly_fields = ('created_at', 'updated_at', 'thumbnail_preview', 'processing_status_display', 'hls_processed', 'hls_path', 'hls_480p_path', 'hls_720p_path', 'hls_1080p_path')
     actions = ['regenerate_thumbnails']
+
+    def processing_status_display(self, obj):
+        """Display processing status as read-only text with color coding."""
+        status_colors = {
+            'pending': '#ffa500',
+            'processing': '#0066cc', 
+            'completed': '#008000',
+            'failed': '#cc0000'
+        }
+        color = status_colors.get(obj.processing_status, '#666666')
+        return mark_safe(f'<span style="color: {color}; font-weight: bold;">{obj.get_processing_status_display()}</span>')
+    
+    processing_status_display.short_description = 'Processing Status'
 
     fieldsets = (
         ('Basic Information', {
@@ -29,12 +42,15 @@ class VideoAdmin(admin.ModelAdmin):
             'fields': ('video_file', 'thumbnail', 'thumbnail_preview'),
             'description': 'You can upload a custom thumbnail or it will be automatically generated from the video.'
         }),
-        ('Processing', {
-            'fields': ('processing_status',),
-        }),
-        ('HLS Settings', {
-            'fields': ('hls_processed', 'hls_path', 'hls_480p_path', 'hls_720p_path', 'hls_1080p_path'),
+        ('Processing Status (Read-Only)', {
+            'fields': ('processing_status_display',),
+            'description': 'Processing status is automatically managed by the system.',
             'classes': ('collapse',)
+        }),
+        ('HLS Settings (Read-Only)', {
+            'fields': ('hls_processed', 'hls_path', 'hls_480p_path', 'hls_720p_path', 'hls_1080p_path'),
+            'classes': ('collapse',),
+            'description': 'HLS conversion data is automatically managed by the system.'
         }),
         ('Timestamps', {
             'fields': ('created_at', 'updated_at'),
