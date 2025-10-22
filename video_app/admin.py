@@ -9,6 +9,49 @@ class CategoryAdmin(admin.ModelAdmin):
     list_display = ('name', 'created_at')
     search_fields = ('name',)
     ordering = ('name',)
+    actions = ['create_default_categories']
+    
+    def create_default_categories(self, request, queryset):
+        """Action to create default movie categories."""
+        default_categories = [
+            'Action',
+            'Comedy', 
+            'Drama',
+            'Horror',
+            'Thriller',
+            'Science Fiction',
+            'Fantasy',
+            'Romance',
+            'Adventure',
+            'Crime',
+            'Mystery',
+            'Animation',
+            'Documentary',
+            'Biography',
+            'History',
+            'War',
+            'Western',
+            'Musical',
+            'Family',
+            'Sport'
+        ]
+        
+        created_count = 0
+        existing_count = 0
+        
+        for category_name in default_categories:
+            category, created = Category.objects.get_or_create(name=category_name)
+            if created:
+                created_count += 1
+            else:
+                existing_count += 1
+        
+        if created_count > 0:
+            self.message_user(request, f'{created_count} neue Kategorien wurden erstellt.')
+        if existing_count > 0:
+            self.message_user(request, f'{existing_count} Kategorien existierten bereits.')
+    
+    create_default_categories.short_description = 'Standard Film-Kategorien erstellen'
 
 
 @admin.register(Video)
@@ -71,14 +114,14 @@ class VideoAdmin(admin.ModelAdmin):
                     queue.enqueue(self._regenerate_single_thumbnail, video.id)
                     count += 1
                 except Exception as e:
-                    self.message_user(request, f'Error with video "{video.title}": {str(e)}', level='ERROR')
+                    self.message_user(request, f'Fehler bei Video "{video.title}": {str(e)}', level='ERROR')
         
         if count > 0:
-            self.message_user(request, f'Thumbnail regeneration started for {count} video(s).')
+            self.message_user(request, f'Thumbnail-Neugenerierung gestartet für {count} Video(s). Die Erstellung erfolgt automatisch im Hintergrund.')
         else:
-            self.message_user(request, 'No videos found for thumbnail regeneration.', level='WARNING')
+            self.message_user(request, 'Keine Videos für Thumbnail-Neugenerierung gefunden.', level='WARNING')
     
-    regenerate_thumbnails.short_description = 'Regenerate thumbnails for selected videos'
+    regenerate_thumbnails.short_description = 'Thumbnails für ausgewählte Videos neu generieren'
 
     def _regenerate_single_thumbnail(self, video_id):
         """Helper method to regenerate thumbnail for a single video."""

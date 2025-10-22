@@ -24,7 +24,6 @@ class EmailService:
         token = default_token_generator.make_token(user)
         uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
         
-        # Use backend URL that redirects to frontend (like colleague's approach)
         reset_url = f"{settings.BACKEND_URL}/api/password-reset-redirect/{uidb64}/{token}/"
 
         site_name = getattr(settings, 'SITE_NAME', 'Videoflix')
@@ -52,7 +51,6 @@ class EmailService:
         print(f"DEBUG: uidb64: {uidb64}")
         print(f"DEBUG: token: {token}")
         
-        # Use backend URL that redirects to frontend (like colleague's approach)
         confirmation_url = f"{settings.BACKEND_URL}/api/activate-redirect/{uidb64}/{token}/"
         
         print(f"DEBUG: Generated confirmation_url: {confirmation_url}")

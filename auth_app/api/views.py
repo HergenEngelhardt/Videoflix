@@ -56,7 +56,6 @@ class RegistrationView(APIView):
             saved_account = serializer.save()
             logger.debug(f"User created: {saved_account.email}, is_active: {saved_account.is_active}")
             
-            # Use Django's default token generator (simplified approach)
             token = default_token_generator.make_token(saved_account)
             logger.debug(f"Generated activation token for user {saved_account.email}")
 
@@ -90,12 +89,10 @@ def activate_user_account(user, token):
     """Activate user account if token is valid - improved robustness."""
     logger.info(f"Checking activation token for user id={user.pk} email={user.email}")
     
-    # Check if user is already active (idempotent)
     if user.is_active:
         logger.info(f"User {user.email} is already active")
         return True
     
-    # Validate token
     if default_token_generator.check_token(user, token):
         logger.info("Token is valid, activating user")
         user.is_active = True
@@ -157,7 +154,6 @@ def activate_redirect(request, uidb64, token):
     """Redirect from email link to frontend activation page (like colleague's implementation)."""
     logger.debug(f"activate_redirect - uidb64: {uidb64}, token: {token}")
     
-    # Redirect to frontend activation page with parameters (like colleague's approach)
     frontend_url = build_frontend_url(f"pages/auth/activate.html?uid={uidb64}&token={token}")
     logger.debug(f"frontend_url: {frontend_url}")
     
@@ -345,7 +341,6 @@ def password_reset_redirect(request, uidb64, token):
     """Redirect from email link to frontend password reset page (like colleague's implementation)."""
     print(f"DEBUG password_reset_redirect - uidb64: {uidb64}, token: {token}")
     
-    # Redirect to frontend password reset page with parameters (like colleague's approach)
     frontend_url = build_frontend_url(f"pages/auth/confirm_password.html?uid={uidb64}&token={token}")
     print(f"DEBUG frontend_url: {frontend_url}")
     

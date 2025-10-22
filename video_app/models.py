@@ -45,7 +45,6 @@ class Video(models.Model):
     
     processing_status = models.CharField(max_length=20, choices=PROCESSING_STATUS, default='pending')
     
-    # Add missing fields that are referenced in admin
     hls_processed = models.BooleanField(default=False)
     hls_path = models.CharField(max_length=500, blank=True, null=True)
     
