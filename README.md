@@ -57,10 +57,11 @@ I built this because I wanted to learn how modern video streaming platforms work
 
 ## Email Testing
 
-For testing email functions (registration, password reset), two options are available:
+For testing email functions (registration, password reset), you have multiple options:
 
-- **MailDev (recommended)**: Set `USE_MAILDEV=True` in the `.env` file. Emails will be intercepted locally and can be viewed at `http://localhost:1080`.
-- **Console Output**: Without email configuration, emails will be output to the Django console.
+- **MailDev (recommended for local testing)**: Set `USE_MAILDEV=True` in the `.env` file. This is perfect when you want to test email functionality without configuring a real SMTP server. All emails will be intercepted locally and can be viewed at `http://localhost:1080`. No real emails are sent.
+- **Real SMTP Server**: Set `USE_MAILDEV=False` and configure your actual email credentials (Gmail, Outlook, etc.) in the `.env` file. Use this when you want to send real emails during development or production.
+- **Console Output**: Without any email configuration, emails will be output to the Django console (fallback option).
 
 ---
 
@@ -137,9 +138,9 @@ cp .env.template .env
   - `your_database_name` → e.g., `videoflix_db`
   - `your_database_user` → e.g., `videoflix_user`  
   - `your_database_password` → e.g., `supersecretpassword`
-- For email functionality:
-  - Replace `your_email_user` and `your_email_user_password` with your email credentials
-  - **OR** set `USE_MAILDEV=True` to use MailDev for local email testing (recommended for development)
+- For email functionality, choose one option:
+  - **For local testing (recommended)**: Set `USE_MAILDEV=True` to use MailDev - no real email setup needed
+  - **For real emails**: Set `USE_MAILDEV=False` and replace `your_email_user` and `your_email_user_password` with your actual email credentials (Gmail, Outlook, etc.)
 
 **Quick Start for Development:**
 For a quick start, you can use these values in your `.env` file:
@@ -172,10 +173,12 @@ docker-compose ps
 Look at Docker Desktop
 Open Docker Desktop
 Click on "Containers"
-You should see your "videoflix" project with three running containers:
+You should see your "videoflix" project with five running containers:
 videoflix_backend (Django app)
+videoflix_worker (Background task worker)
 videoflix_database (PostgreSQL)
 videoflix_redis (Redis cache)
+videoflix_maildev (Email testing server)
 Database and Admin Setup
 The Docker setup handles everything automatically:
 
