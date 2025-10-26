@@ -59,8 +59,8 @@ I built this because I wanted to learn how modern video streaming platforms work
 
 For testing email functions (registration, password reset), you have multiple options:
 
-- **MailDev (recommended for local testing)**: Set `USE_MAILDEV=True` in the `.env` file. This is perfect when you want to test email functionality without configuring a real SMTP server. All emails will be intercepted locally and can be viewed at `http://localhost:1080`. No real emails are sent.
-- **Real SMTP Server**: Set `USE_MAILDEV=False` and configure your actual email credentials (Gmail, Outlook, etc.) in the `.env` file. Use this when you want to send real emails during development or production.
+- **Mailhog (recommended for local testing)**: Set `USE_MAILHOG=True` in the `.env` file and uncomment the mailhog service in `docker-compose.yml`. This is perfect when you want to test email functionality without configuring a real SMTP server. All emails will be intercepted locally and can be viewed at `http://localhost:8025`. No real emails are sent.
+- **Real SMTP Server (default)**: Configure your actual email credentials (Gmail, Outlook, etc.) in the `.env` file. Use this when you want to send real emails during development or production. Gmail SMTP is preconfigured in the template.
 - **Console Output**: Without any email configuration, emails will be output to the Django console (fallback option).
 
 ---
@@ -100,7 +100,7 @@ sudo apt install ffmpeg
 
 ---
 
-## Docker Setup (Recommended! 🐳)
+## Docker Setup (Recommended!)
 What you need for Docker
 Docker Desktop must be installed and started
 Docker Compose (comes with Docker Desktop)
@@ -139,8 +139,8 @@ cp .env.template .env
   - `your_database_user` → e.g., `videoflix_user`  
   - `your_database_password` → e.g., `supersecretpassword`
 - For email functionality, choose one option:
-  - **For local testing (recommended)**: Set `USE_MAILDEV=True` to use MailDev - no real email setup needed
-  - **For real emails**: Set `USE_MAILDEV=False` and replace `your_email_user` and `your_email_user_password` with your actual email credentials (Gmail, Outlook, etc.)
+  - **For local testing with Mailhog**: Set `USE_MAILHOG=True` and uncomment the mailhog service in docker-compose.yml - no real email setup needed
+  - **For real emails (default)**: Use Gmail SMTP by configuring your Gmail credentials in the `.env` file
 
 **Quick Start for Development:**
 For a quick start, you can use these values in your `.env` file:
@@ -150,10 +150,10 @@ DB_NAME=videoflix_db
 DB_USER=videoflix_user
 DB_PASSWORD=supersecretpassword
 
-# Use MailDev for email testing
-USE_MAILDEV=True
-EMAIL_HOST=maildev
-EMAIL_PORT=1025
+# Email settings (Gmail is default, or use Mailhog for local testing)
+# For Mailhog: uncomment mailhog service in docker-compose.yml and set:
+# USE_MAILHOG=True
+# EMAIL_HOST=mailhog
 ```
 
 The `.env.template` file contains all necessary variables with placeholder values.
@@ -173,12 +173,13 @@ docker-compose ps
 Look at Docker Desktop
 Open Docker Desktop
 Click on "Containers"
-You should see your "videoflix" project with five running containers:
-videoflix_backend (Django app)
-videoflix_worker (Background task worker)
-videoflix_database (PostgreSQL)
-videoflix_redis (Redis cache)
-videoflix_maildev (Email testing server)
+You should see your "videoflix" project with these running containers:
+- videoflix_backend (Django app)
+- videoflix_worker (Background task worker)
+- videoflix_database (PostgreSQL)
+- videoflix_redis (Redis cache)
+- videoflix_nginx (Web server)
+- videoflix_mailhog (Email testing server - only if enabled)
 Database and Admin Setup
 The Docker setup handles everything automatically:
 
