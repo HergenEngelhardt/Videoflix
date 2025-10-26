@@ -1,25 +1,32 @@
-services:
+version: '3.8'
 
+services:
   db:
-    image: postgres:latest
+    image: postgres:16-alpine
     container_name: videoflix_database
+    restart: unless-stopped
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:-videoflix_db}
+      POSTGRES_USER: ${DB_USER:-videoflix_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-supersecretpassword}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-videoflix_user} -d ${DB_NAME:-videoflix_db}"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
+    networks:
+      - videoflix_network
 
   redis:
-    image: redis:latest
+    image: redis:7-alpine
     container_name: videoflix_redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
     volumes:
@@ -29,24 +36,35 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
+    networks:
+      - videoflix_network
 
-  maildev:
-    image: maildev/maildev:latest
-    container_name: videoflix_maildev
-    ports:
-      - "1080:1080"  
-      - "1025:1025"  
-    environment:
-      - MAILDEV_WEB_PORT=1080
-      - MAILDEV_SMTP_PORT=1025
+  # Optional: Mailhog for local email testing
+  # Uncomment this service if you want to use Mailhog instead of Gmail
+  # and set EMAIL_HOST=mailhog in your .env file
+  # mailhog:
+  #   image: mailhog/mailhog:v1.0.1
+  #   container_name: videoflix_mailhog
+  #   restart: unless-stopped
+  #   ports:
+  #     - "1025:1025"  # SMTP Port
+  #     - "8025:8025"  # Web Interface
+  #   networks:
+  #     - videoflix_network
 
   web:
     build:
       context: .
       dockerfile: backend.Dockerfile
     image: videoflix-backend:latest
-    env_file: .env
     container_name: videoflix_backend
+    restart: unless-stopped
+    env_file: 
+      - .env
+    environment:
+      - DB_HOST=db
+      - REDIS_HOST=redis
     volumes:
       - videoflix_media:/app/media
       - videoflix_static:/app/static
@@ -57,17 +75,28 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      maildev:
-        condition: service_started
     command: ./backend.entrypoint.sh
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8000/admin/login/", "||", "exit", "1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - videoflix_network
 
   worker:
     build:
       context: .
       dockerfile: backend.Dockerfile
     image: videoflix-backend:latest
-    env_file: .env
     container_name: videoflix_worker
+    restart: unless-stopped
+    env_file: 
+      - .env
+    environment:
+      - DB_HOST=db
+      - REDIS_HOST=redis
     volumes:
       - videoflix_media:/app/media
       - videoflix_static:/app/static
@@ -79,12 +108,42 @@ services:
       web:
         condition: service_started
     command: ./entrypoint.worker.sh
+    networks:
+      - videoflix_network
 
-
-
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: videoflix_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - videoflix_static:/var/www/static:ro
+      - videoflix_media:/var/www/media:ro
+      - ./frontend:/var/www/frontend:ro
+    depends_on:
+      - web
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - videoflix_network
 
 volumes:
   postgres_data:
+    driver: local
   redis_data:
+    driver: local
   videoflix_media:
+    driver: local
   videoflix_static:
+    driver: local
+
+networks:
+  videoflix_network:
+    driver: bridge
+    name: videoflix_network
