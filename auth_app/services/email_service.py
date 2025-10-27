@@ -20,7 +20,7 @@ class EmailService:
 
     @staticmethod
     def send_password_reset_email(user):
-        """Send password reset email with backend redirect link (like colleague's implementation)."""
+        """Send password reset email with backend redirect link."""
         token = default_token_generator.make_token(user)
         uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
         
@@ -43,7 +43,7 @@ class EmailService:
 
     @staticmethod
     def send_registration_confirmation_email(user, token):
-        """Send account activation email with backend redirect link (like colleague's implementation)."""
+        """Send account activation email with backend redirect link."""
         uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
         
         confirmation_url = f"{settings.BACKEND_URL}/api/activate-redirect/{uidb64}/{token}/"

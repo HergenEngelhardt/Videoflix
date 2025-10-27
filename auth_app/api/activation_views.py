@@ -100,5 +100,6 @@ def activate_redirect(request, uidb64, token):
     """Redirect from email link to frontend activation page (like colleague's implementation)."""
     
     frontend_url = build_frontend_url(f"pages/auth/activate.html?uid={uidb64}&token={token}")
+    logger.info(f"Redirecting to: {frontend_url}")
     
     return redirect(frontend_url)
