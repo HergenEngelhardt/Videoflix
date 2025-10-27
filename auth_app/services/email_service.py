@@ -20,11 +20,12 @@ class EmailService:
 
     @staticmethod
     def send_password_reset_email(user):
-        """Send password reset email with backend redirect link."""
+        from ..utils import build_frontend_url
+        
         token = default_token_generator.make_token(user)
         uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
         
-        reset_url = f"{settings.BACKEND_URL}/api/password-reset-redirect/{uidb64}/{token}/"
+        reset_url = build_frontend_url(f"pages/auth/confirm_password.html?uid={uidb64}&token={token}")
 
         site_name = getattr(settings, 'SITE_NAME', 'Videoflix')
 
@@ -43,10 +44,11 @@ class EmailService:
 
     @staticmethod
     def send_registration_confirmation_email(user, token):
-        """Send account activation email with backend redirect link."""
+        from ..utils import build_frontend_url
+        
         uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
         
-        confirmation_url = f"{settings.BACKEND_URL}/api/activate-redirect/{uidb64}/{token}/"
+        confirmation_url = build_frontend_url(f"pages/auth/activate.html?uid={uidb64}&token={token}")
         
         context = {
             'user': user,
