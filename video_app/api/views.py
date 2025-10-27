@@ -8,7 +8,6 @@ from django.shortcuts import get_object_or_404
 import os
 
 from .serializers import VideoListSerializer
-from .permissions import IsAuthenticatedForVideo
 from ..models import Video
 
 
@@ -35,36 +34,22 @@ def dashboard_view(request):
     - hero_video: Featured/latest video for hero section
     - categories: Dict with category names as keys and video lists as values
     """
-    from collections import defaultdict
-    from ..models import Category
+    from ..utils.core import get_dashboard_empty_response, build_categories_dict, serialize_categories
     
     videos = Video.objects.select_related('category').order_by('-created_at')
-    
     if not videos.exists():
-        return Response({
-            'hero_video': None,
-            'categories': {}
-        }, status=status.HTTP_200_OK)
+        return get_dashboard_empty_response()
     
     hero_video = videos.first()
     hero_serializer = VideoListSerializer(hero_video, context={'request': request})
     
-    categories_dict = defaultdict(list)
-    for video in videos:
-        if video.category:
-            categories_dict[video.category.name].append(video)
-    
-    result_categories = {}
-    for category_name, category_videos in categories_dict.items():
-        serializer = VideoListSerializer(category_videos, many=True, context={'request': request})
-        result_categories[category_name] = serializer.data
-    
+    categories_dict = build_categories_dict(videos)
+    result_categories = serialize_categories(categories_dict, request)
+
     return Response({
         'hero_video': hero_serializer.data,
         'categories': result_categories
     }, status=status.HTTP_200_OK)
-
-
 def get_manifest_path(movie_id, resolution):
     """Get path to HLS manifest file.
     Constructs filesystem path for specific video resolution manifest.

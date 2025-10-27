@@ -9,6 +9,110 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def handle_new_video_save(video_instance):
+    """Handle save logic for new video instances."""
+    try:
+        video_instance._validate_before_processing()
+        logger.info(f"Pre-processing validation successful for video: {video_instance.title}")
+    except Exception as e:
+        logger.error(f"Pre-processing validation failed for video {video_instance.title}: {str(e)}")
+        return 'failed'
+    return None
+
+
+def handle_video_processing_queue(video_instance):
+    """Queue video processing for new instances."""
+    try:
+        queue_video_processing(video_instance)
+        logger.info(f"Video processing queued successfully for: {video_instance.title}")
+        return None
+    except Exception as e:
+        logger.error(f"Failed to queue video processing for {video_instance.title}: {str(e)}")
+        return 'failed'
+
+
+def validate_video_file_exists(video_file):
+    """Validate that video file exists and is readable."""
+    import os
+    from django.core.exceptions import ValidationError
+    
+    if not video_file:
+        raise ValidationError("No video file provided")
+    
+    if not hasattr(video_file, 'path'):
+        return
+        
+    video_path = video_file.path
+    if not os.path.exists(video_path):
+        raise ValidationError(f"Video file does not exist: {video_path}")
+    
+    if not os.access(video_path, os.R_OK):
+        raise ValidationError(f"Video file is not readable: {video_path}")
+
+
+def validate_video_file_size(video_file, title):
+    """Validate video file size constraints."""
+    import os
+    from django.core.exceptions import ValidationError
+    
+    if not hasattr(video_file, 'path'):
+        return
+        
+    file_size = os.path.getsize(video_file.path)
+    if file_size == 0:
+        raise ValidationError("Video file is empty")
+    
+    max_size = 100.5 * 1024 * 1024  # 100.5 MB
+    if file_size > max_size:
+        raise ValidationError(f"Video file too large: {file_size / 1024 / 1024:.2f}MB")
+        
+    logger.info(f"Video file validation passed: {video_file.path} ({file_size / 1024 / 1024:.2f}MB)")
+
+
+def validate_video_metadata(title, description, category):
+    """Validate video metadata fields."""
+    from django.core.exceptions import ValidationError
+    
+    if not title or not title.strip():
+        raise ValidationError("Video title is required")
+    
+    if not description or not description.strip():
+        raise ValidationError("Video description is required")
+    
+    if not category:
+        raise ValidationError("Video category is required")
+
+
+def get_dashboard_empty_response():
+    """Return empty dashboard response when no videos exist."""
+    from rest_framework.response import Response
+    from rest_framework import status
+    return Response({
+        'hero_video': None,
+        'categories': {}
+    }, status=status.HTTP_200_OK)
+
+
+def build_categories_dict(videos):
+    """Build categories dictionary from video queryset."""
+    from collections import defaultdict
+    categories_dict = defaultdict(list)
+    for video in videos:
+        if video.category:
+            categories_dict[video.category.name].append(video)
+    return categories_dict
+
+
+def serialize_categories(categories_dict, request):
+    """Serialize categories dictionary with videos."""
+    from ..api.serializers import VideoListSerializer
+    result_categories = {}
+    for category_name, category_videos in categories_dict.items():
+        serializer = VideoListSerializer(category_videos, many=True, context={'request': request})
+        result_categories[category_name] = serializer.data
+    return result_categories
+
+
 def queue_video_processing(video_instance):
     """
     Queue both thumbnail generation and HLS conversion for a video.

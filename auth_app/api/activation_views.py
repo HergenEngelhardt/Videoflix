@@ -49,7 +49,6 @@ def activate_user_account(user, token):
     
     logger.warning(f"Token validation failed for user {user.email}")
     return False
-    return False
 
 
 def create_activation_error_response():

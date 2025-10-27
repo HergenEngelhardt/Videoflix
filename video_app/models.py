@@ -36,7 +36,7 @@ class Video(models.Model):
 
     title = models.CharField(max_length=200, unique=True, blank=False, null=False)
     description = models.TextField(blank=False, null=False)
-    category = models.ForeignKey(Category, on_delete=models.CASCADE, blank=False, null=False)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name="videos", blank=False, null=False)
     
     video_file = models.FileField(
         upload_to=video_upload_path,
@@ -74,65 +74,34 @@ class Video(models.Model):
         is_new = self.pk is None
         
         if is_new and self.video_file:
-            try:
-                self._validate_before_processing()
-                logger.info(f"Pre-processing validation successful for video: {self.title}")
-            except Exception as e:
-                logger.error(f"Pre-processing validation failed for video {self.title}: {str(e)}")
-                self.processing_status = 'failed'
+            from .utils.core import handle_new_video_save
+            failed_status = handle_new_video_save(self)
+            if failed_status:
+                self.processing_status = failed_status
                 super().save(*args, **kwargs)
                 return
         
         super().save(*args, **kwargs)
 
         if is_new and self.video_file:
-            try:
-                from .utils.core import queue_video_processing
-                queue_video_processing(self)
-                logger.info(f"Video processing queued successfully for: {self.title}")
-            except Exception as e:
-                logger.error(f"Failed to queue video processing for {self.title}: {str(e)}")
-                self.processing_status = 'failed'
+            from .utils.core import handle_video_processing_queue
+            failed_status = handle_video_processing_queue(self)
+            if failed_status:
+                self.processing_status = failed_status
                 super().save(update_fields=['processing_status'])
 
     def _validate_before_processing(self):
         """Validate video file before queuing for processing."""
-        import os
-        from django.core.exceptions import ValidationError
+        from .utils.core import validate_video_file_exists, validate_video_file_size, validate_video_metadata
         
-        if not self.video_file:
-            raise ValidationError("No video file provided")
+        validate_video_file_exists(self.video_file)
         
-        if hasattr(self.video_file, 'path'):
-            try:
-                video_path = self.video_file.path
-                if not os.path.exists(video_path):
-                    raise ValidationError(f"Video file does not exist: {video_path}")
-                
-                if not os.access(video_path, os.R_OK):
-                    raise ValidationError(f"Video file is not readable: {video_path}")
-                
-                file_size = os.path.getsize(video_path)
-                if file_size == 0:
-                    raise ValidationError("Video file is empty")
-                
-                max_size = 100.5 * 1024 * 1024  # 100.5 MB
-                if file_size > max_size:
-                    raise ValidationError(f"Video file too large: {file_size / 1024 / 1024:.2f}MB")
-                    
-                logger.info(f"Video file validation passed: {video_path} ({file_size / 1024 / 1024:.2f}MB)")
-                
-            except (AttributeError, OSError) as e:
-                logger.warning(f"Could not validate video file path for {self.title}: {str(e)}")
+        try:
+            validate_video_file_size(self.video_file, self.title)
+        except (AttributeError, OSError) as e:
+            logger.warning(f"Could not validate video file path for {self.title}: {str(e)}")
         
-        if not self.title or not self.title.strip():
-            raise ValidationError("Video title is required")
-        
-        if not self.description or not self.description.strip():
-            raise ValidationError("Video description is required")
-        
-        if not self.category:
-            raise ValidationError("Video category is required")
+        validate_video_metadata(self.title, self.description, self.category)
 
     @property
     def thumbnail_url(self):
@@ -148,7 +117,9 @@ class Video(models.Model):
         return None
 
     def get_hls_resolutions(self):
-        """Get available HLS resolutions for this video."""
+        """Get available HLS resolutions for this video.
+        Returns list of processed resolution strings (e.g., '720p', '1080p').
+        Used for determining which quality options are available to clients."""
         resolutions = []
         if self.hls_480p_path:
             resolutions.append('480p')
@@ -157,8 +128,3 @@ class Video(models.Model):
         if self.hls_1080p_path:
             resolutions.append('1080p')
         return resolutions
-        """Get available HLS resolutions for this video.
-        Returns list of processed resolution strings (e.g., '720p', '1080p').
-        Used for determining which quality options are available to clients."""
-        from .utils.files import get_hls_resolutions
-        return get_hls_resolutions(self)

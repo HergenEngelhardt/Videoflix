@@ -1,8 +1,6 @@
 import re
 import uuid
 from rest_framework import serializers
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from ..models import CustomUser
@@ -57,72 +55,6 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return account
 
 
-class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    """Custom JWT serializer authenticating users via email and password instead of username."""
-    email = serializers.EmailField()
-    password = serializers.CharField(write_only=True)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        if "username" in self.fields:
-            self.fields.pop("username")
-
-    def validate(self, attrs):
-        """Validate that passwords match."""
-        if attrs['password'] != attrs['confirmed_password']:
-            raise serializers.ValidationError("Passwords do not match.")
-        return attrs
-
-    def create(self, validated_data):
-        """Create new user with encrypted password."""
-        validated_data.pop('confirmed_password')
-        user = CustomUser.objects.create_user(
-            email=validated_data['email'],
-            password=validated_data['password'],
-            is_active=False
-        )
-        return user
-
-
-class UserLoginSerializer(serializers.Serializer):
-    """Serializer for user login.
-    Authenticates credentials and validates account activation status."""
-    email = serializers.EmailField()
-    password = serializers.CharField()
-
-    def authenticate_user_credentials(self, email, password):
-        """Authenticate user with email and password."""
-        user = authenticate(username=email, password=password)
-        if not user:
-            raise serializers.ValidationError('Invalid credentials.')
-        if not user.is_active:
-            raise serializers.ValidationError('Account is not activated.')
-        return user
-
-    def validate(self, attrs):
-        """Validate user credentials."""
-        email = attrs.get('email')
-        password = attrs.get('password')
-
-        if isinstance(email, str):
-            email = email.lower()
-            attrs['email'] = email
-
-        try:
-            user = CustomUser.objects.get(email=email)
-        except CustomUser.DoesNotExist:
-            raise serializers.ValidationError("Invalid email or password")
-
-        if not user.check_password(password):
-            raise serializers.ValidationError("Invalid email or password")
-
-        attrs['username'] = user.username
-        data = super().validate(attrs)
-
-        return data
-
-
 class PasswordResetSerializer(serializers.Serializer):
     """Serializer for initiating a password reset request via email."""
     email = serializers.EmailField()
@@ -167,10 +99,6 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         user.set_password(self.validated_data['new_password'])
         user.save()
         return user
-
-
-
-
 
 class UserSerializer(serializers.ModelSerializer):
     """Serializer for user data."""
