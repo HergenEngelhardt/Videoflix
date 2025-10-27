@@ -9,13 +9,116 @@ import logging
 from typing import List, Dict, Any, Optional
 from django.conf import settings
 import django_rq
-from .ffmpeg_utils import (
-    validate_video_file, convert_single_resolution,
-    get_resolution_configs
-)
-
-
 logger = logging.getLogger(__name__)
+
+
+def get_resolution_configs():
+    """Get HLS resolution configurations for video conversion."""
+    return [
+        {'name': '120p', 'width': 214, 'height': 120, 'bitrate': '300k'},
+        {'name': '360p', 'width': 640, 'height': 360, 'bitrate': '800k'},
+        {'name': '480p', 'width': 854, 'height': 480, 'bitrate': '1200k'},
+        {'name': '720p', 'width': 1280, 'height': 720, 'bitrate': '2500k'},
+        {'name': '1080p', 'width': 1920, 'height': 1080, 'bitrate': '5000k'},
+    ]
+
+
+def check_video_file_exists(video_path: str) -> bool:
+    """Check if video file exists."""
+    if not os.path.exists(video_path):
+        logger.error(f"Video file not found: {video_path}")
+        return False
+    return True
+
+
+def check_video_file_readable(video_path: str) -> bool:
+    """Check if video file is readable."""
+    if not os.access(video_path, os.R_OK):
+        logger.error(f"Video file not readable: {video_path}")
+        return False
+    return True
+
+
+def validate_video_file(video_path: str) -> bool:
+    """Validate if video file exists and is accessible."""
+    return (check_video_file_exists(video_path) and
+            check_video_file_readable(video_path))
+
+
+def get_basic_ffmpeg_args(video_path: str):
+    """Get basic FFmpeg arguments."""
+    return ['ffmpeg', '-i', video_path, '-c:v', 'libx264', '-c:a', 'aac']
+
+
+def get_audio_args():
+    """Get audio encoding arguments."""
+    return ['-strict', 'experimental', '-ac', '2', '-b:a', '128k', '-ar', '44100']
+
+
+def get_video_args(resolution):
+    """Get video encoding arguments for resolution."""
+    return [
+        '-vf', f'scale={resolution["width"]}:{resolution["height"]}',
+        '-b:v', resolution['bitrate'], '-maxrate', resolution['bitrate'],
+        '-bufsize', str(int(resolution['bitrate'][:-1]) * 2) + 'k'
+    ]
+
+
+def get_hls_args(res_dir: str, output_path: str):
+    """Get HLS-specific arguments."""
+    return [
+        '-hls_time', '10', '-hls_list_size', '0',
+        '-hls_segment_filename', os.path.join(res_dir, '%03d.ts'),
+        '-f', 'hls', output_path, '-y'
+    ]
+
+
+def build_ffmpeg_command(video_path: str, resolution, output_path: str, res_dir: str):
+    """Build complete FFmpeg command for HLS conversion."""
+    command = get_basic_ffmpeg_args(video_path)
+    command.extend(get_audio_args())
+    command.extend(get_video_args(resolution))
+    command.extend(get_hls_args(res_dir, output_path))
+    return command
+
+
+def setup_resolution_directory(hls_dir: str, resolution_name: str) -> str:
+    """Setup directory for specific resolution."""
+    res_dir = os.path.join(hls_dir, resolution_name)
+    os.makedirs(res_dir, exist_ok=True)
+    return res_dir
+
+
+def run_ffmpeg_conversion(ffmpeg_command, resolution_name: str) -> bool:
+    """Execute FFmpeg conversion with error handling."""
+    try:
+        import subprocess
+        logger.info(f"Starting conversion for {resolution_name}")
+        result = subprocess.run(ffmpeg_command, capture_output=True, text=True, timeout=3600)
+        return handle_conversion_result(result, resolution_name)
+    except subprocess.TimeoutExpired:
+        logger.error(f"Timeout converting {resolution_name}")
+        return False
+    except Exception as e:
+        logger.error(f"Unexpected error converting {resolution_name}: {str(e)}")
+        return False
+
+
+def handle_conversion_result(result, resolution_name: str) -> bool:
+    """Handle FFmpeg conversion result."""
+    if result.returncode != 0:
+        logger.error(f"FFmpeg error for {resolution_name}: {result.stderr}")
+        return False
+    logger.info(f"Successfully converted {resolution_name}")
+    return True
+
+
+def convert_single_resolution(video_path: str, resolution, hls_dir: str) -> bool:
+    """Convert video to single HLS resolution."""
+    res_dir = setup_resolution_directory(hls_dir, resolution['name'])
+    output_path = os.path.join(res_dir, 'index.m3u8')
+    ffmpeg_command = build_ffmpeg_command(video_path, resolution, output_path, res_dir)
+    return run_ffmpeg_conversion(ffmpeg_command, resolution['name'])
 
 
 def validate_video_instance(video_instance) -> tuple:
@@ -114,7 +217,7 @@ def create_base_status_info(video_instance) -> Dict[str, Any]:
 def calculate_conversion_progress(status_info: Dict[str, Any], video_instance) -> None:
     """Calculate and set conversion progress.
     Determines percentage completion based on successfully converted resolutions."""
-    from .file_utils import get_hls_resolutions
+    from .files import get_hls_resolutions
 
     if video_instance.hls_processed:
         status_info['available_resolutions'] = get_hls_resolutions(video_instance)

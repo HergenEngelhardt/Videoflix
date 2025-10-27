@@ -41,7 +41,7 @@ class VideoListSerializer(serializers.ModelSerializer):
                         return request.build_absolute_uri(obj.thumbnail.url)
                 else:
                     if obj.video_file and hasattr(obj.video_file, 'path') and os.path.exists(obj.video_file.path):
-                        from ..utils import queue_video_processing
+                        from ..utils.core import queue_video_processing
                         queue_video_processing(obj)
             except Exception:
                 pass  
@@ -78,7 +78,7 @@ class VideoDetailSerializer(serializers.ModelSerializer):
                         return request.build_absolute_uri(obj.thumbnail.url)
                 else:
                     if obj.video_file and hasattr(obj.video_file, 'path') and os.path.exists(obj.video_file.path):
-                        from ..utils import queue_video_processing
+                        from ..utils.core import queue_video_processing
                         queue_video_processing(obj)
             except Exception:
                 pass  

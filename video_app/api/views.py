@@ -197,7 +197,7 @@ def regenerate_thumbnail_view(request, video_id):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        from ..utils import queue_video_processing
+        from ..utils.core import queue_video_processing
         import django_rq
         
         try:
@@ -210,7 +210,7 @@ def regenerate_thumbnail_view(request, video_id):
             }, status=status.HTTP_202_ACCEPTED)
             
         except Exception as queue_error:
-            from ..utils import generate_video_thumbnail_for_instance
+            from ..utils.ffmpeg import generate_video_thumbnail_for_instance
             
             if video.thumbnail:
                 video.thumbnail.delete(save=False)
@@ -260,7 +260,7 @@ def video_status_view(request, video_id):
             except:
                 has_thumbnail = False
         
-        from ..utils import check_conversion_status
+        from ..utils.hls import check_conversion_status
         hls_status = check_conversion_status(video)
         
         return Response({

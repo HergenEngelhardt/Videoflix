@@ -1,7 +1,11 @@
 from django.db import models
 from django.conf import settings
 from django.core.validators import FileExtensionValidator
-from .utils import video_upload_path, validate_video_size, thumbnail_upload_path
+from .utils.files import video_upload_path, thumbnail_upload_path
+from .utils.validators import validate_video_size, comprehensive_video_validator
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Category(models.Model):
@@ -38,7 +42,8 @@ class Video(models.Model):
         upload_to=video_upload_path,
         validators=[
             FileExtensionValidator(allowed_extensions=['mp4', 'avi', 'mov', 'mkv']),
-            validate_video_size
+            validate_video_size,
+            comprehensive_video_validator
         ], blank=False, null=False
     )
     thumbnail = models.ImageField(upload_to=thumbnail_upload_path, blank=True, null=True)
@@ -67,11 +72,67 @@ class Video(models.Model):
 
     def save(self, *args, **kwargs):
         is_new = self.pk is None
+        
+        if is_new and self.video_file:
+            try:
+                self._validate_before_processing()
+                logger.info(f"Pre-processing validation successful for video: {self.title}")
+            except Exception as e:
+                logger.error(f"Pre-processing validation failed for video {self.title}: {str(e)}")
+                self.processing_status = 'failed'
+                super().save(*args, **kwargs)
+                return
+        
         super().save(*args, **kwargs)
 
         if is_new and self.video_file:
-            from .utils import queue_video_processing
-            queue_video_processing(self)
+            try:
+                from .utils.core import queue_video_processing
+                queue_video_processing(self)
+                logger.info(f"Video processing queued successfully for: {self.title}")
+            except Exception as e:
+                logger.error(f"Failed to queue video processing for {self.title}: {str(e)}")
+                self.processing_status = 'failed'
+                super().save(update_fields=['processing_status'])
+
+    def _validate_before_processing(self):
+        """Validate video file before queuing for processing."""
+        import os
+        from django.core.exceptions import ValidationError
+        
+        if not self.video_file:
+            raise ValidationError("No video file provided")
+        
+        if hasattr(self.video_file, 'path'):
+            try:
+                video_path = self.video_file.path
+                if not os.path.exists(video_path):
+                    raise ValidationError(f"Video file does not exist: {video_path}")
+                
+                if not os.access(video_path, os.R_OK):
+                    raise ValidationError(f"Video file is not readable: {video_path}")
+                
+                file_size = os.path.getsize(video_path)
+                if file_size == 0:
+                    raise ValidationError("Video file is empty")
+                
+                max_size = 100.5 * 1024 * 1024  # 100.5 MB
+                if file_size > max_size:
+                    raise ValidationError(f"Video file too large: {file_size / 1024 / 1024:.2f}MB")
+                    
+                logger.info(f"Video file validation passed: {video_path} ({file_size / 1024 / 1024:.2f}MB)")
+                
+            except (AttributeError, OSError) as e:
+                logger.warning(f"Could not validate video file path for {self.title}: {str(e)}")
+        
+        if not self.title or not self.title.strip():
+            raise ValidationError("Video title is required")
+        
+        if not self.description or not self.description.strip():
+            raise ValidationError("Video description is required")
+        
+        if not self.category:
+            raise ValidationError("Video category is required")
 
     @property
     def thumbnail_url(self):
@@ -99,5 +160,5 @@ class Video(models.Model):
         """Get available HLS resolutions for this video.
         Returns list of processed resolution strings (e.g., '720p', '1080p').
         Used for determining which quality options are available to clients."""
-        from .utils import get_hls_resolutions
+        from .utils.files import get_hls_resolutions
         return get_hls_resolutions(self)

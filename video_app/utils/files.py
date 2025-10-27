@@ -97,3 +97,15 @@ def get_hls_playlist_url(video_instance, resolution: str) -> Optional[str]:
         return None
 
     return build_hls_playlist_url(video_instance, resolution)
+
+
+def video_upload_path(instance, filename):
+    """Generates the file path where videos will be uploaded."""
+    return f'videos/original/{instance.id}/{filename}'
+
+
+def thumbnail_upload_path(instance, filename):
+    """Generates the file path where thumbnail images will be uploaded."""
+    import uuid
+    identifier = instance.id if instance.id else uuid.uuid4().hex
+    return f'videos/thumbnails/{identifier}/{filename}'
