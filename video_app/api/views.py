@@ -1,5 +1,5 @@
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes, authentication_classes
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.http import HttpResponse, Http404
@@ -9,11 +9,9 @@ import os
 
 from .serializers import VideoListSerializer
 from ..models import Video
-from auth_app.authentication import JWTCookieAuthentication
 
 
 @api_view(['GET'])
-@authentication_classes([JWTCookieAuthentication])
 @permission_classes([IsAuthenticated])
 def video_list_view(request):
     """

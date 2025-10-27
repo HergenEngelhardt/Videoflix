@@ -196,16 +196,6 @@ SIMPLE_JWT = {
     'ALGORITHM': 'HS256',
     'SIGNING_KEY': SECRET_KEY,
     'AUTH_HEADER_TYPES': ('Bearer',),
-    'AUTH_COOKIE': 'access_token',
-    'AUTH_COOKIE_SECURE': False,
-    'AUTH_COOKIE_HTTP_ONLY': True,
-    'AUTH_COOKIE_PATH': '/',
-    'AUTH_COOKIE_SAMESITE': 'None' if not DEBUG else 'Lax',
-    'REFRESH_COOKIE': 'refresh_token',
-    'REFRESH_COOKIE_SECURE': False,
-    'REFRESH_COOKIE_HTTP_ONLY': True,
-    'REFRESH_COOKIE_PATH': '/',
-    'REFRESH_COOKIE_SAMESITE': 'None' if not DEBUG else 'Lax',
 }
 
 # CORS Settings
@@ -314,7 +304,7 @@ LOGGING = {
     },
     'root': {
         'handlers': ['console'],
-        'level': 'INFO',
+        'level': 'WARNING',
     },
     'loggers': {
         'django': {

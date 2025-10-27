@@ -1,9 +1,6 @@
-import logging
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework.exceptions import AuthenticationFailed
-
-logger = logging.getLogger(__name__)
 
 
 class JWTCookieAuthentication(JWTAuthentication):
@@ -25,30 +22,4 @@ class JWTCookieAuthentication(JWTAuthentication):
         except (InvalidToken, TokenError, AuthenticationFailed):
             return None
 
-    def collect_token_validation_messages(self, raw_token):
-        """Collect validation messages from all token types."""
-        from rest_framework_simplejwt.tokens import AccessToken
-        messages = []
-        try:
-            return AccessToken(raw_token), None
-        except TokenError as e:
-            messages.append({
-                'token_class': AccessToken.__name__,
-                'token_type': AccessToken.token_type,
-                'message': e.args[0],
-            })
-        return None, messages
 
-    def get_validated_token(self, raw_token):
-        """
-        Validates an encoded JSON web token and returns a validated token
-        wrapper object.
-        """
-        token, messages = self.collect_token_validation_messages(raw_token)
-        if token:
-            return token
-
-        raise InvalidToken({
-            'detail': 'Given token not valid for any token type',
-            'messages': messages,
-        })
