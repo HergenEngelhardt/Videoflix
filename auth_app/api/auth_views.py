@@ -86,11 +86,11 @@ class LoginView(APIView):
                 response = Response(response_data)
                 
                 cookie_settings = {
-                    'httponly': True,
-                    'secure': not settings.DEBUG,
-                    'samesite': 'None' if not settings.DEBUG else 'Lax',
+                    'httponly': False,  # Allow JS access for testing
+                    'secure': False,
+                    'samesite': 'Lax',  # Lax for local development
                     'path': '/',
-                    'domain': getattr(settings, 'COOKIE_DOMAIN', None)
+                    'domain': '127.0.0.1'  # Explicit IP for cross-port
                 }
                 
                 response.set_cookie('access_token', str(access), **cookie_settings)
@@ -127,8 +127,8 @@ class LogoutView(APIView):
             pass 
 
         response = Response({'detail': 'Logout successful! All tokens will be deleted. Refresh token is now invalid.'})
-        response.delete_cookie('access_token', path="/", domain=getattr(settings, 'COOKIE_DOMAIN', None))
-        response.delete_cookie('refresh_token', path="/", domain=getattr(settings, 'COOKIE_DOMAIN', None))
+        response.delete_cookie('access_token', path="/", domain='localhost')
+        response.delete_cookie('refresh_token', path="/", domain='localhost')
         return response
 
 

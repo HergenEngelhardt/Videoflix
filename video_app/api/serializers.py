@@ -34,17 +34,12 @@ class VideoListSerializer(serializers.ModelSerializer):
     def get_thumbnail_url(self, obj):
         """Get full URL for thumbnail."""
         if obj.thumbnail and obj.thumbnail.name:
-            try:
-                if hasattr(obj.thumbnail, 'path') and os.path.exists(obj.thumbnail.path):
-                    request = self.context.get('request')
-                    if request:
-                        return request.build_absolute_uri(obj.thumbnail.url)
-                else:
-                    if obj.video_file and hasattr(obj.video_file, 'path') and os.path.exists(obj.video_file.path):
-                        from ..utils.core import queue_video_processing
-                        queue_video_processing(obj)
-            except Exception:
-                pass  
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.thumbnail.url)
+            else:
+                from django.conf import settings
+                return f"{getattr(settings, 'MEDIA_URL', '/media/')}{obj.thumbnail.name}"
         return None
 
 
