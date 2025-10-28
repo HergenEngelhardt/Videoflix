@@ -15,9 +15,8 @@ RUN apk update && \
     pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt && \
     apk del .build-deps && \
-    apk add --no-cache dos2unix && \
-    find . -type f -name "*.sh" -exec dos2unix {} \; && \
-    find . -type f -name "*.sh" -exec chmod +x {} \; && \
-    apk del dos2unix
+    chmod +x backend.entrypoint.sh
 
 EXPOSE 8000
+
+ENTRYPOINT [ "./backend.entrypoint.sh" ]

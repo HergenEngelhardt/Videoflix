@@ -1,4 +1,4 @@
-# Videoflix – Video Streaming Platform
+# Videoflix 
 
 Videoflix is a professional video streaming platform built with Django, allowing users to upload, process, and stream videos with HLS technology. Like Netflix for your own content – automatic multi-resolution streaming from 120p to 1080p.
 
@@ -79,12 +79,12 @@ Authorization: Bearer your_jwt_token_here
 - Users manage only their own video progress
 
 ## Tech Stack
-Python
-Django & Django REST Framework
-PostgreSQL
-Docker
-Redis
-FFmpeg
+- Python
+- Django & Django REST Framework
+- PostgreSQL
+- Docker
+- Redis
+- FFmpeg
 
 Thanks for checking out my Videoflix project!
 

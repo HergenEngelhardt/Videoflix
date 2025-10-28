@@ -43,6 +43,8 @@ if os.environ.get("CSRF_TRUSTED_ORIGINS"):
     additional_csrf_origins = os.environ.get("CSRF_TRUSTED_ORIGINS").split(",")
     CSRF_TRUSTED_ORIGINS.extend(additional_csrf_origins)
 
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5500')
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',

@@ -4,6 +4,8 @@ set -e
 
 echo "Warte auf PostgreSQL auf $DB_HOST:$DB_PORT..."
 
+# -q für "quiet" (keine Ausgabe außer Fehlern)
+# Die Schleife läuft, solange pg_isready *nicht* erfolgreich ist (Exit-Code != 0)
 while ! pg_isready -h "$DB_HOST" -p "$DB_PORT" -q; do
   echo "PostgreSQL ist nicht erreichbar - schlafe 1 Sekunde"
   sleep 1
@@ -32,5 +34,7 @@ if not User.objects.filter(username=username).exists():
 else:
     print(f"Superuser '{username}' already exists.")
 EOF
+
+python manage.py rqworker default &
 
 exec gunicorn core.wsgi:application --bind 0.0.0.0:8000
