@@ -216,7 +216,7 @@ if os.environ.get("CORS_ALLOWED_ORIGINS"):
     additional_origins = os.environ.get("CORS_ALLOWED_ORIGINS").split(",")
     CORS_ALLOWED_ORIGINS.extend(additional_origins)
 
-CORS_ALLOW_ALL_ORIGINS = DEBUG
+CORS_ALLOW_ALL_ORIGINS = False
 
 if DEBUG:
     CORS_ALLOWED_ORIGIN_REGEXES = [
